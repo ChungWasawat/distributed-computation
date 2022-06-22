@@ -8,19 +8,16 @@ from numpy.random import shuffle
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 
-def hypothesis(X, theta):
-    return np.dot(X, theta)
-def gradient(X, y, theta):
-    h = hypothesis(X, theta)
-    grad = np.dot(X.transpose(), (h - y))
-    return grad
-def cost(X, y, theta):
-    h = hypothesis(X, theta)
-    J = np.dot((h - y).transpose(), (h - y))
-    J /= 2
-    return J[0]
 
-
+def gradient(pos, theta, x, y):
+    
+    if pos==0:
+        # print(pos, theta[0,pos], y)
+        return theta[0,pos] - y
+    else:
+        # print(pos, theta[0,pos], x[pos-1])
+        return gradient(pos-1, theta, x, y) + (theta[0,pos] * x[pos-1])
+    
 
 """
 Data1 has the following inputs:
@@ -56,32 +53,36 @@ print(model.intercept_, model.coef_)
 ###### gradient descent
 
 learning_rate = [0.001, 0.005, 0.01, 0.05, 0.1]
-epoch = 10
+epoch = 2
 batch_size = 128
-nrows = 1000 #X.shape[0]
+nrows = 1000#X.shape[0]
 
 all_data = np.c_[X,y]
+train_x = all_data[:, :-1]
+train_y = all_data[:, -1]
 
 for lr in learning_rate:
     seed(47)
     theta = randn(1, X.shape[1]+1)
     for i in range(epoch):
-        #shuffle(all_data)
-        train_x = all_data[:, :-1]
-        train_y = all_data[:, -1]
+        # shuffle(all_data)
+        # train_x = all_data[:, :-1]
+        # train_y = all_data[:, -1]
 
         for start in range(0, nrows):
             #stop = start + batch_size
-            grad = theta[0,0] + (theta[0,1]*train_x[start,0]) + (theta[0,2]*train_x[start,1]) - train_y[start]
+            grad = gradient(theta.size-1, theta, train_x[start], train_y[start])
             for j in range(theta.size):
                 if j ==0:
                     temps = theta[0,j] - (lr * grad)
                 else:
                     temp = theta[0,j] - (lr * grad * train_x[start,j-1] )
                     temps = np.c_[temps,temp]
-            
+                    
             theta = temps
     print(lr, theta)
         
         
 ####### stochastic gradient descent
+
+
