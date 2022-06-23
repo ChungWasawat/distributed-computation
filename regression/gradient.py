@@ -38,9 +38,19 @@ def contour(m, path, lr):
         
     title = f"learning rate = {lr}"
     plt.title(title)
+    plt.xlabel("theta1")
+    plt.ylabel("theta2")
     plt.show()
     
-
+def converge(error, step, lr):
+    plt.xlim(0, step)
+    plt.plot(error, color = 'b')
+    title = f"learning rate = {lr}"
+    plt.title(title)
+    plt.xlabel("step")
+    plt.ylabel("error")
+    plt.show()
+    
 """
 Data1 has the following inputs:
 1. Frequency, in Hertzs.
@@ -85,12 +95,15 @@ train_x = all_data[:, :-1]
 train_y = all_data[:, -1]
 
 old_theta = []
+errors = []
 
 for lr in learning_rate:
     seed(47)
     theta = randn(1, X.shape[1]+1)
     old_th = []
     old_th.append(theta[:,1:].reshape(2,))
+    error = []
+    
     for i in range(epoch):
         # shuffle(all_data)
         # train_x = all_data[:, :-1]
@@ -98,25 +111,30 @@ for lr in learning_rate:
 
         for start in range(0, nrows):
             #stop = start + batch_size
-            grad = gradient(theta.size-1, theta, train_x[start], train_y[start])
+            loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
+            error.append(abs(loss))
             for j in range(theta.size):
                 if j ==0:
-                    temps = theta[0,j] - (lr * grad)
+                    temps = theta[0,j] - (lr * loss)
                 else:
-                    temp = theta[0,j] - (lr * grad * train_x[start,j-1] )
+                    temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
                     temps = np.c_[temps,temp]        
             theta = temps
             if (start+1) % (batch_size) == 0:
                 old_th.append(theta[:,1:].reshape(2,))
     print("learning rate=", lr, theta.flatten())
     old_theta.append(old_th)    
-
+    errors.append(error)
 
 # visualisation
+## gradient
 for lr in range(len(learning_rate)):
     all_w = np.array(old_theta[lr])
     contour(model.coef_, all_w, learning_rate[lr])    
-
+## error
+for lr in range(len(learning_rate)):
+    all_e = np.array(errors[lr])
+    converge(all_e, nrows, learning_rate[lr])
 ####### stochastic gradient descent
 
 
