@@ -20,14 +20,14 @@ def gradient(pos, theta, x, y):
         return gradient(pos-1, theta, x, y) + (theta[0,pos] * x[pos-1])
   
 def contour(m, path, lr):
+    plt.figure()
     x,y = m[0], m[1]
     plt.xlim(-x*3, x*3)
     plt.ylim(-y*7, y*7)
     plt.grid()
-    plt.plot(x, y, marker="o", markersize=10, markeredgecolor="blue", markerfacecolor="white")
     
     for i in range(path.shape[0]-1):
-        if i == path.shape[0]-2:
+        if i == 0:
             plt.annotate('', xy=path[i + 1, :], xytext=path[i, :],
                          arrowprops={'arrowstyle': '->', 'color': 'green', 'lw': 1},
                          va='center', ha='center')
@@ -36,6 +36,7 @@ def contour(m, path, lr):
                          arrowprops={'arrowstyle': '->', 'color': 'red', 'lw': 1},
                          va='center', ha='center')            
         
+    plt.plot(x, y, marker="o", markersize=10, markeredgecolor="blue", markerfacecolor="none", zorder=10)
     title = f"learning rate = {lr}"
     plt.title(title)
     plt.xlabel("theta1")
@@ -43,6 +44,7 @@ def contour(m, path, lr):
     plt.show()
     
 def converge(error, step, lr):
+    plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
     title = f"learning rate = {lr}"
@@ -76,6 +78,7 @@ std_scaler = StandardScaler()
 
 X = std_scaler.fit_transform(X)
 
+##########################################################
 ###### linear regression 
 
 model = LinearRegression()
@@ -83,45 +86,111 @@ model.fit(X, y)
 
 print("from linear regression", model.intercept_, model.coef_)
 
-###### gradient descent
+##########################################################
+###### stochastic gradient descent
 
 learning_rate = [0.005, 0.01, 0.05, 0.1]
-epoch = 2
+epoch =10
 batch_size = 128
-nrows = 1280#X.shape[0]
+nrows = X.shape[0]
 
 all_data = np.c_[X,y]
-train_x = all_data[:, :-1]
-train_y = all_data[:, -1]
 
 old_theta = []
 errors = []
 
+# for lr in learning_rate:
+#     seed(99)
+#     theta = randn(1, X.shape[1]+1)
+#     old_th = []
+#     old_th.append(theta[:,1:].reshape(2,))
+#     error = []
+    
+#     for i in range(epoch):
+#         shuffle(all_data)
+#         train_x = all_data[:, :-1]
+#         train_y = all_data[:, -1]
+
+#         for start in range(0, nrows):
+#             #stop = start + batch_size
+#             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
+            
+#             for j in range(theta.size):
+#                 if j ==0:
+#                     temps = theta[0,j] - (lr * loss)
+#                 else:
+#                     temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
+#                     temps = np.c_[temps,temp]        
+#             theta = temps
+            
+#             # store only for a start point or every batch
+#             if start == 0 or (start+1) % batch_size == 0:
+#                 old_th.append(theta[:,1:].reshape(2,))
+#             # store only for the first iteration.
+#             if i ==0:
+#                 error.append(abs(loss))
+                
+#     print("learning rate=", lr, theta.flatten())
+#     old_theta.append(old_th)    
+#     errors.append(error)
+
+# # visualisation
+# ## gradient
+# for lr in range(len(learning_rate)):
+#     all_w = np.array(old_theta[lr])
+#     contour(model.coef_, all_w, learning_rate[lr])    
+# ## error
+# for lr in range(len(learning_rate)):
+#     all_e = np.array(errors[lr])
+#     converge(all_e, len(errors[lr]), learning_rate[lr])
+    
+
+##########################################################
+####### stochastic gradient descent (mini-batch)
+
 for lr in learning_rate:
-    seed(47)
+    seed(99)
     theta = randn(1, X.shape[1]+1)
+    sum_grad = np.zeros(theta.shape)
+    
     old_th = []
     old_th.append(theta[:,1:].reshape(2,))
     error = []
     
+    shuffle(all_data)
+    train_x = all_data[:, :-1]
+    train_y = all_data[:, -1]
+    
     for i in range(epoch):
-        # shuffle(all_data)
-        # train_x = all_data[:, :-1]
-        # train_y = all_data[:, -1]
 
         for start in range(0, nrows):
             #stop = start + batch_size
             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
-            error.append(abs(loss))
+                 
             for j in range(theta.size):
                 if j ==0:
                     temps = theta[0,j] - (lr * loss)
                 else:
                     temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
-                    temps = np.c_[temps,temp]        
-            theta = temps
-            if (start+1) % (batch_size) == 0:
-                old_th.append(theta[:,1:].reshape(2,))
+                    temps = np.c_[temps,temp]  
+            
+            sum_grad += temps
+            
+            if (start+1) % batch_size == 0 or start == nrows -1: 
+                if start == nrows-1:
+                    
+                    sum_grad /= (nrows%batch_size)
+                else:
+                    sum_grad /= batch_size
+                theta = sum_grad
+                sum_grad = np.zeros(theta.shape)
+                
+                old_th.append(theta[:,1:].reshape(2,)) 
+                error.append(abs(loss))       
+                
+            # if i ==0:
+            #     error.append(abs(loss))
+                
     print("learning rate=", lr, theta.flatten())
     old_theta.append(old_th)    
     errors.append(error)
@@ -134,7 +203,5 @@ for lr in range(len(learning_rate)):
 ## error
 for lr in range(len(learning_rate)):
     all_e = np.array(errors[lr])
-    converge(all_e, nrows, learning_rate[lr])
-####### stochastic gradient descent
-
+    converge(all_e, len(errors[lr]), learning_rate[lr])
 
