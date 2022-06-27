@@ -106,13 +106,12 @@ errors = []
 #     old_th.append(theta[:,1:].reshape(2,))
 #     error = []
     
+#     shuffle(all_data)
+#     train_x = all_data[:, :-1]
+#     train_y = all_data[:, -1]  
+  
 #     for i in range(epoch):
-#         shuffle(all_data)
-#         train_x = all_data[:, :-1]
-#         train_y = all_data[:, -1]
-
 #         for start in range(0, nrows):
-#             #stop = start + batch_size
 #             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
             
 #             for j in range(theta.size):
@@ -162,7 +161,6 @@ for lr in learning_rate:
     train_y = all_data[:, -1]
     
     for i in range(epoch):
-
         for start in range(0, nrows):
             #stop = start + batch_size
             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
