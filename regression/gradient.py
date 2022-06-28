@@ -71,7 +71,8 @@ data1 = path + "\data\\airfoil_self_noise.dat"
 col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
-X = df1.values[:, 0::3] 
+# X = df1.values[:, 0::3] #freq and velocity
+X = df1.values[:, 0:5] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -84,7 +85,7 @@ X = std_scaler.fit_transform(X)
 model = LinearRegression()
 model.fit(X, y)
 
-print("from linear regression", model.intercept_, model.coef_)
+print("from linear regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
 
 ##########################################################
 ###### stochastic gradient descent
@@ -99,49 +100,51 @@ all_data = np.c_[X,y]
 old_theta = []
 errors = []
 
-# for lr in learning_rate:
-#     seed(99)
-#     theta = randn(1, X.shape[1]+1)
-#     old_th = []
-#     old_th.append(theta[:,1:].reshape(2,))
-#     error = []
+for lr in learning_rate:
+    seed(99)
+    theta = randn(1, X.shape[1]+1)
+    old_th = []
+    old_th.append(theta[:,1:].reshape(theta.size-1,))
+    error = []
     
-#     shuffle(all_data)
-#     train_x = all_data[:, :-1]
-#     train_y = all_data[:, -1]  
+    shuffle(all_data)
+    train_x = all_data[:, :-1]
+    train_y = all_data[:, -1]  
   
-#     for i in range(epoch):
-#         for start in range(0, nrows):
-#             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
+    for i in range(epoch):
+        for start in range(0, nrows):
+            loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
             
-#             for j in range(theta.size):
-#                 if j ==0:
-#                     temps = theta[0,j] - (lr * loss)
-#                 else:
-#                     temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
-#                     temps = np.c_[temps,temp]        
-#             theta = temps
+            for j in range(theta.size):
+                if j ==0:
+                    temps = theta[0,j] - (lr * loss)
+                else:
+                    temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
+                    temps = np.c_[temps,temp]        
+            theta = temps
             
-#             # store only for a start point or every batch
-#             if start == 0 or (start+1) % batch_size == 0:
-#                 old_th.append(theta[:,1:].reshape(2,))
-#             # store only for the first iteration.
-#             if i ==0:
-#                 error.append(abs(loss))
+            # store only for a start point or every batch
+            if start == 0 or (start+1) % batch_size == 0:
+                old_th.append(theta[:,1:].reshape(theta.size-1,))
+            # store only for the first iteration.
+            if i ==0:
+                error.append(abs(loss))
                 
-#     print("learning rate=", lr, theta.flatten())
-#     old_theta.append(old_th)    
-#     errors.append(error)
+    print("learning rate=", lr, theta.flatten().round(decimals=3))
+    old_theta.append(old_th)    
+    errors.append(error)
 
-# # visualisation
-# ## gradient
-# for lr in range(len(learning_rate)):
-#     all_w = np.array(old_theta[lr])
-#     contour(model.coef_, all_w, learning_rate[lr])    
-# ## error
-# for lr in range(len(learning_rate)):
-#     all_e = np.array(errors[lr])
-#     converge(all_e, len(errors[lr]), learning_rate[lr])
+# visualisation
+## gradient
+for lr in range(len(learning_rate)):
+    all_w = np.array(old_theta[lr])
+    if all_w.shape[1] > 2:
+        break
+    contour(model.coef_, all_w, learning_rate[lr])    
+## error
+for lr in range(len(learning_rate)):
+    all_e = np.array(errors[lr])
+    converge(all_e, len(errors[lr]), learning_rate[lr])
     
 
 ##########################################################
@@ -153,7 +156,7 @@ for lr in learning_rate:
     sum_grad = np.zeros(theta.shape)
     
     old_th = []
-    old_th.append(theta[:,1:].reshape(2,))
+    old_th.append(theta[:,1:].reshape(theta.size-1,))
     error = []
     
     shuffle(all_data)
@@ -183,13 +186,13 @@ for lr in learning_rate:
                 theta = sum_grad
                 sum_grad = np.zeros(theta.shape)
                 
-                old_th.append(theta[:,1:].reshape(2,)) 
+                old_th.append(theta[:,1:].reshape(theta.size-1,)) 
                 error.append(abs(loss))       
                 
             # if i ==0:
             #     error.append(abs(loss))
                 
-    print("learning rate=", lr, theta.flatten())
+    print("learning rate=", lr, theta.flatten().round(decimals=3))
     old_theta.append(old_th)    
     errors.append(error)
 
@@ -197,6 +200,8 @@ for lr in learning_rate:
 ## gradient
 for lr in range(len(learning_rate)):
     all_w = np.array(old_theta[lr])
+    if all_w.shape[1] > 2:
+        break
     contour(model.coef_, all_w, learning_rate[lr])    
 ## error
 for lr in range(len(learning_rate)):
