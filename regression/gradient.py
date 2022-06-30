@@ -149,6 +149,9 @@ for lr in range(len(learning_rate)):
 ##########################################################
 ####### stochastic gradient descent (mini-batch)
 
+old_theta = []
+errors = []
+
 for lr in learning_rate:
     seed(99)
     theta = randn(1, X.shape[1]+1)
@@ -167,13 +170,18 @@ for lr in learning_rate:
             #stop = start + batch_size
             loss = gradient(theta.size-1, theta, train_x[start], train_y[start])
                  
+            # for j in range(theta.size):
+            #     if j ==0:
+            #         temps = theta[0,j] - (lr * loss)
+            #     else:
+            #         temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
+            #         temps = np.c_[temps,temp]  
             for j in range(theta.size):
                 if j ==0:
-                    temps = theta[0,j] - (lr * loss)
+                    temps = loss
                 else:
-                    temp = theta[0,j] - (lr * loss * train_x[start,j-1] )
-                    temps = np.c_[temps,temp]  
-            
+                    temp = loss * train_x[start,j-1] 
+                    temps = np.c_[temps,temp]              
             sum_grad += temps
             
             if (start+1) % batch_size == 0 or start == nrows -1: 
@@ -182,18 +190,16 @@ for lr in learning_rate:
                     sum_grad /= (nrows%batch_size)
                 else:
                     sum_grad /= batch_size
-                theta = sum_grad
+                theta = theta - (lr * sum_grad)
                 sum_grad = np.zeros(theta.shape)
                 
                 old_th.append(theta[:,1:].reshape(theta.size-1,)) 
-                error.append(abs(loss))       
-                
-            # if i ==0:
-            #     error.append(abs(loss))
-                
+                error.append(abs(loss))
+               
     print("learning rate=", lr, theta.flatten().round(decimals=3))
     old_theta.append(old_th)    
     errors.append(error)
+
 
 # visualisation
 ## gradient
