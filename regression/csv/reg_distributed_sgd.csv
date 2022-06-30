@@ -1,0 +1,26 @@
+model,learning rate,batch,epoch,intercept,theta1,theta2,theta3,theta4
+linear regression,0.0,0,0,124.836,-4.073,-4.185,-3.763,1.667
+"distributed sgd, node =3",0.005,0,10,124.817,-4.204,-3.975,-3.699,1.523
+"distributed sgd, node =3",0.01,0,10,124.816,-4.292,-3.762,-3.612,1.423
+"distributed sgd, node =3",0.05,0,10,124.75,-4.317,-2.967,-2.87,1.148
+"distributed sgd, node =3",0.1,0,10,124.763,-4.541,-2.726,-2.708,0.799
+"distributed sgd, mini-batch, and node=3",0.005,32,10,67.819,-0.534,-0.296,-0.276,0.361
+"distributed sgd, mini-batch, and node=3",0.01,32,10,98.926,-1.877,-1.167,-1.236,0.753
+"distributed sgd, mini-batch, and node=3",0.05,32,10,124.783,-3.994,-3.894,-3.543,1.567
+"distributed sgd, mini-batch, and node=3",0.1,32,10,124.816,-4.162,-4.049,-3.716,1.567
+"distributed sgd, node =4",0.005,0,10,124.788,-4.127,-4.218,-3.791,1.734
+"distributed sgd, node =4",0.01,0,10,124.71,-4.192,-4.266,-3.82,1.806
+"distributed sgd, node =4",0.05,0,10,124.06,-4.346,-4.936,-4.065,2.137
+"distributed sgd, node =4",0.1,0,10,123.685,-4.409,-5.539,-4.467,2.228
+"distributed sgd, mini-batch, and node=4",0.005,32,10,55.484,-0.051,-0.11,0.037,0.246
+"distributed sgd, mini-batch, and node=4",0.01,32,10,86.464,-1.322,-0.763,-0.815,0.582
+"distributed sgd, mini-batch, and node=4",0.05,32,10,124.521,-3.819,-3.688,-3.335,1.566
+"distributed sgd, mini-batch, and node=4",0.1,32,10,124.808,-4.083,-4.164,-3.742,1.702
+"distributed sgd, node =5",0.005,0,10,124.799,-4.136,-4.14,-3.746,1.679
+"distributed sgd, node =5",0.01,0,10,124.769,-4.194,-4.106,-3.781,1.698
+"distributed sgd, node =5",0.05,0,10,125.011,-4.151,-4.03,-3.85,1.627
+"distributed sgd, node =5",0.1,0,10,125.502,-4.235,-3.948,-3.628,1.525
+"distributed sgd, mini-batch, and node=5",0.005,32,10,46.839,0.264,-0.019,0.305,0.145
+"distributed sgd, mini-batch, and node=5",0.01,32,10,76.272,-0.915,-0.511,-0.445,0.426
+"distributed sgd, mini-batch, and node=5",0.05,32,10,123.815,-3.643,-3.347,-3.037,1.462
+"distributed sgd, mini-batch, and node=5",0.1,32,10,124.798,-4.065,-4.058,-3.656,1.648

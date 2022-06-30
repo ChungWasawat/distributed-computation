@@ -71,7 +71,7 @@ col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
 # X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:5] 
+X = df1.values[:, 0:4] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -85,6 +85,12 @@ model = LinearRegression()
 model.fit(X, y)
 
 print("from linear regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
+
+col_table = ["model", "learning rate", "batch", "epoch", "intercept"]
+table = [["linear regression", 0, 0, 0, model.intercept_.round(decimals=3)]]
+for z in range(model.coef_.size):
+    table[0].append(model.coef_[z].round(decimals=3))
+    col_table.append(f"theta{z+1}")
 
 ##########################################################
 ###### stochastic gradient descent
@@ -109,6 +115,7 @@ for lr in learning_rate:
     shuffle(all_data)
     train_x = all_data[:, :-1]
     train_y = all_data[:, -1]  
+     
   
     for i in range(epoch):
         for start in range(0, nrows):
@@ -129,7 +136,12 @@ for lr in learning_rate:
             if i ==0:
                 error.append(abs(loss))
                 
-    print("learning rate=", lr, theta.flatten().round(decimals=3))
+    print("learning rate=", lr, theta.flatten().round(decimals=3))    
+    temp_table = ["sgd", lr, 0, epoch]
+    for z in theta.flatten():
+        temp_table.append(z.round(decimals=3))
+    table.append(temp_table)
+    
     old_theta.append(old_th)    
     errors.append(error)
 
@@ -196,7 +208,12 @@ for lr in learning_rate:
                 old_th.append(theta[:,1:].reshape(theta.size-1,)) 
                 error.append(abs(loss))
                
-    print("learning rate=", lr, theta.flatten().round(decimals=3))
+    print("learning rate=", lr, theta.flatten().round(decimals=3))    
+    temp_table = ["sgd with mini-batch", lr, batch_size, epoch]
+    for z in theta.flatten():
+        temp_table.append(z.round(decimals=3))
+    table.append(temp_table)   
+    
     old_theta.append(old_th)    
     errors.append(error)
 
@@ -213,3 +230,6 @@ for lr in range(len(learning_rate)):
     all_e = np.array(errors[lr])
     converge(all_e, len(errors[lr]), learning_rate[lr])
 
+data2 = path + "\csv\\reg_normal_sgd.csv"
+df999 = pd.DataFrame(table, columns=col_table)
+df999.to_csv(data2, index=False)
