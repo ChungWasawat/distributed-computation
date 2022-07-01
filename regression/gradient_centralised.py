@@ -67,8 +67,9 @@ def contour(m, path, lr):
     plt.title(title)
     plt.xlabel("theta1")
     plt.ylabel("theta2")
-    plt.show()            
-
+    plt.show()           
+    
+##########################################################
 path = os.getcwd()
 
 data1 = path + "\data\\airfoil_self_noise.dat"
