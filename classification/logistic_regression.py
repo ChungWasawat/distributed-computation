@@ -145,7 +145,7 @@ for lr in learning_rate:
             if m%batch_size==0 :
                 old_th.append(theta)   
         if t%every_t==0:
-            error.append(c/nrows)
+            error.append(c/(nrows-1))
             
     print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
     temp_table = ["sgd", lr, 0, epoch, theta0]

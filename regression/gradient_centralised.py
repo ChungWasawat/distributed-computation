@@ -156,7 +156,10 @@ for node in nodes:
     
     ##########################################################
     # sgd with mini-batch
-    
+ 
+    old_theta = []
+    errors = []   
+ 
     for lr in learning_rate:
         seed(99)
         theta = randn(1, X.shape[1]+1).flatten()
