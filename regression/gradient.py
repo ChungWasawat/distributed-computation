@@ -71,7 +71,7 @@ col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
 # X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:4] 
+X = df1.values[:, 0:2] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
