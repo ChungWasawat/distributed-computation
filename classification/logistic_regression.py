@@ -77,7 +77,7 @@ col1 = ['variance', 'skewness', 'curtosis', 'entropy', 'class']
 
 df1 = pd.read_table(data1, sep=",", names=col1)
 
-X = df1.values[:, 0:2] 
+X = df1.values[:, 0:4] 
 Y = df1.values[:, 4]
 
 std_scaler = StandardScaler()
@@ -104,9 +104,9 @@ seed_num = 99
 learning_rate = [0.005, 0.01, 0.05, 0.1]
 # learning_rate = [0.01, 0.05, 0.1, 0.5]
 
-epoch = 10
+epoch = 30
 every_t = 1
-batch_size = 128
+batch_size = 64
 
 all_data = np.c_[X,Y]
 nrows= all_data.shape[0]
@@ -148,7 +148,7 @@ for lr in learning_rate:
             error.append(c/(nrows-1))
             
     print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
-    temp_table = ["sgd", lr, 0, epoch, theta0]
+    temp_table = ["sgd", lr, 0, epoch, theta0[0]]
     for z in theta:
         temp_table.append(z.round(decimals=3))
     table.append(temp_table)
@@ -217,7 +217,7 @@ for lr in learning_rate:
             error.append(c)
             
     print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
-    temp_table = ["sgd with mini-batch", lr, batch_size, epoch, theta0]
+    temp_table = ["sgd with mini-batch", lr, batch_size, epoch, theta0[0]]
     for z in theta:
         temp_table.append(z.round(decimals=3))
     table.append(temp_table)   

@@ -45,7 +45,7 @@ def all_grad(theta, node, order, dataset):
         except:
             return ( grad, ne)
       
-def contour(m, path, lr):
+def contour(m, path, lr, node):
     plt.figure()
     x,y = m[0], m[1]
     plt.xlim(-x*3, x*3)
@@ -63,7 +63,7 @@ def contour(m, path, lr):
                          va='center', ha='center')            
         
     plt.plot(x, y, marker="o", markersize=10, markeredgecolor="blue", markerfacecolor="none", zorder=10)
-    title = f"learning rate = {lr}"
+    title = f"learning rate = {lr}, node = {node}"
     plt.title(title)
     plt.xlabel("theta1")
     plt.ylabel("theta2")
@@ -77,7 +77,7 @@ col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
 # X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:4] 
+X = df1.values[:, 0:2] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -148,11 +148,11 @@ for node in nodes:
         old_theta.append(old_th)   
      
     
-    # for lr in range(len(learning_rate)):
-    #     all_w = np.array(old_theta[lr])
-    #     if all_w.shape[1] > 2:
-    #         break
-    #     contour(model.coef_, all_w, learning_rate[lr])  
+    for lr in range(len(learning_rate)):
+        all_w = np.array(old_theta[lr])
+        if all_w.shape[1] > 2:
+            break
+        contour(model.coef_, all_w, learning_rate[lr], node)  
     
     ##########################################################
     # sgd with mini-batch
@@ -193,11 +193,11 @@ for node in nodes:
         old_theta.append(old_th)   
      
     
-    # for lr in range(len(learning_rate)):
-    #     all_w = np.array(old_theta[lr])
-    #     if all_w.shape[1] > 2:
-    #         break
-    #     contour(model.coef_, all_w, learning_rate[lr])  
+    for lr in range(len(learning_rate)):
+        all_w = np.array(old_theta[lr])
+        if all_w.shape[1] > 2:
+            break
+        contour(model.coef_, all_w, learning_rate[lr], node)  
     
 data2 = path + "\csv\\reg_distributed_sgd.csv"
 df999 = pd.DataFrame(table, columns=col_table)

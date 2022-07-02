@@ -79,7 +79,7 @@ def contour(m, path, lr):
                          va='center', ha='center')            
         
     plt.plot(x, y, marker="o", markersize=10, markeredgecolor="blue", markerfacecolor="none", zorder=10)
-    title = f"learning rate = {lr}"
+    title = f"learning rate = {lr}, node = {node}"
     plt.title(title)
     plt.xlabel("theta1")
     plt.ylabel("theta2")
@@ -101,7 +101,7 @@ col1 = ['variance', 'skewness', 'curtosis', 'entropy', 'class']
 
 df1 = pd.read_table(data1, sep=",", names=col1)
 
-X = df1.values[:, 0:2] 
+X = df1.values[:, 0:4] 
 Y = df1.values[:, 4]
 
 std_scaler = StandardScaler()
@@ -124,13 +124,16 @@ for m in range(model.coef_.size):
 ## sgd
 theta_is_zero = True
 seed_num = 99
+visual = True
+sgd = True
+sgd_batch = False
 
 learning_rate = [0.005, 0.01, 0.05, 0.1]
-# learning_rate = [0.01, 0.05, 0.1, 0.5]
+# learning_rate = [0.05, 0.1]
 
-epoch = 10
+epoch = 30
 every_t = 1
-batch_size = 128
+batch_size = 32
 
 all_data = np.c_[X,Y]
 nodes = [3,4,5]
@@ -154,114 +157,118 @@ for node in nodes:
         datasets.append( all_data[ start : stop, : ] )
         start, stop = stop, stop+divided_n
     
-    old_theta = []
-    errors = []    
-    
-    for lr in learning_rate:   
-        if theta_is_zero == True:
-            theta0,theta = 0, np.zeros(X.shape[1])
-        else:
-            theta0, theta = theta_init(seed_num)
-            
-        old_th = []
-        old_th.append(theta)
-        error = []    
+    if sgd == True:
+        old_theta = []
+        errors = []    
         
-        for t in range(epoch):
-            for d in range(max_divided_n):
-                mean_grad0, mean_grad, ne, c = all_grad(node-1, d, theta0, theta,  datasets)
-                mean_grad0 /= ne
-                mean_grad /= ne
-                c /= ne
+        for lr in learning_rate:   
+            if theta_is_zero == True:
+                theta0,theta = 0, np.zeros(X.shape[1])
+            else:
+                theta0, theta = theta_init(seed_num)
                 
-                theta0 = theta0 - (lr * mean_grad0)
-                theta = theta - (lr * mean_grad)
-                
-                if d%batch_size==0 :
-                    old_th.append(theta) 
+            old_th = []
+            old_th.append(theta)
+            error = []    
             
-            if t%every_t==0:
-                error.append(c/(max_divided_n-1))
-    
-    print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
-    temp_table = [f"distributed sgd, node ={node}", lr, 0, epoch, theta0]
-    for z in theta.flatten():
-        temp_table.append(z.round(decimals=3))
-    table.append(temp_table)
-    
-    old_theta.append(old_th)  
-    errors.append(error)
-    
-    # # visualisation
-    # ## gradient
-    # for lr in range(len(learning_rate)):
-    #     all_w = np.array(old_theta[lr])
-    #     if all_w.shape[1] > 2:
-    #         break
-    #     contour(model.coef_.flatten(), all_w, learning_rate[lr])   
+            for t in range(epoch):
+                for d in range(max_divided_n):
+                    mean_grad0, mean_grad, ne, c = all_grad(node-1, d, theta0, theta,  datasets)
+                    mean_grad0 /= ne
+                    mean_grad /= ne
+                    c /= ne
+                    
+                    theta0 = theta0 - (lr * mean_grad0)
+                    theta = theta - (lr * mean_grad)
+                    
+                    if d%batch_size==0 :
+                        old_th.append(theta) 
+                
+                if t%every_t==0:
+                    error.append(c/(max_divided_n-1))
+        
+            print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
+            temp_table = [f"distributed sgd, node ={node}", lr, 0, epoch, theta0[0]]
+            for z in theta.flatten():
+                temp_table.append(z.round(decimals=3))
+            table.append(temp_table)
+        
+            old_theta.append(old_th)  
+            errors.append(error)
+        
+        # visualisation
+        ## gradient
+        if visual == True:
+            for lr in range(len(learning_rate)):
+                all_w = np.array(old_theta[lr])
+                if all_w.shape[1] > 2:
+                    break
+                contour(model.coef_.flatten(), all_w, learning_rate[lr])   
     
 ##########################################################
 ## sgd with mini batch
-    old_theta = []
-    errors = []
-
-    for lr in learning_rate:   
-        if theta_is_zero == True:
-            theta0,theta = 0, np.zeros(X.shape[1])
-        else:
-            theta0, theta = theta_init(seed_num)
-  
-        sum_theta0 = np.zeros(1)
-        sum_theta = np.zeros(theta.shape)
-        
-        old_th = []
-        old_th.append(theta)
-        error = []    
-        
-        for t in range(epoch):
-            for d in range(max_divided_n):
-                mean_grad0, mean_grad, ne, c = all_grad(node-1, d, theta0, theta,  datasets)
-                mean_grad0 /= ne
-                mean_grad /= ne
-                c /= ne
-                
-                sum_theta0 += mean_grad0
-                sum_theta += mean_grad
-                
-                if d%batch_size==0 or d==max_divided_n-1:
-                    if d == nrows-1:
-                        sum_theta0 /= (max_divided_n%batch_size)
-                        sum_theta /= (max_divided_n%batch_size)
-                    else:
-                        sum_theta0 /= batch_size  
-                        sum_theta /= batch_size               
-                
-                    theta0 = theta0 - (lr * sum_theta0)
-                    theta = theta - (lr * sum_theta)
-                
-                    sum_theta0 = np.zeros(1)
-                    sum_theta = np.zeros(theta.shape)
+    if sgd_batch == True:
+        old_theta = []
+        errors = []
+    
+        for lr in learning_rate:   
+            if theta_is_zero == True:
+                theta0,theta = 0, np.zeros(X.shape[1])
+            else:
+                theta0, theta = theta_init(seed_num)
+      
+            sum_theta0 = np.zeros(1)
+            sum_theta = np.zeros(theta.shape)
+            
+            old_th = []
+            old_th.append(theta)
+            error = []    
+            
+            for t in range(epoch):
+                for d in range(max_divided_n):
+                    mean_grad0, mean_grad, ne, c = all_grad(node-1, d, theta0, theta,  datasets)
+                    mean_grad0 /= ne
+                    mean_grad /= ne
+                    c /= ne
                     
-        if t % every_t ==0:
-            old_th.append(theta)              
-            error.append(c)
-
-    print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
-    temp_table = [f"distributed sgd, mini-batch, and node={node}", lr, batch_size, epoch, theta0]
-    for z in theta:
-        temp_table.append(z.round(decimals=3))
-    table.append(temp_table)   
-
-    old_theta.append(old_th)  
-    errors.append(error)    
-
-    # # visualisation
-    # ## gradient
-    # for lr in range(len(learning_rate)):
-    #     all_w = np.array(old_theta[lr])
-    #     if all_w.shape[1] > 2:
-    #         break
-    #     contour(model.coef_.flatten(), all_w, learning_rate[lr])  
+                    sum_theta0 += mean_grad0
+                    sum_theta += mean_grad
+                    
+                    if d%batch_size==0 or d==max_divided_n-1:
+                        if d == nrows-1:
+                            sum_theta0 /= (max_divided_n%batch_size)
+                            sum_theta /= (max_divided_n%batch_size)
+                        else:
+                            sum_theta0 /= batch_size  
+                            sum_theta /= batch_size               
+                    
+                        theta0 = theta0 - (lr * sum_theta0)
+                        theta = theta - (lr * sum_theta)
+                    
+                        sum_theta0 = np.zeros(1)
+                        sum_theta = np.zeros(theta.shape)
+                        
+                if t % every_t ==0:
+                    old_th.append(theta)              
+                    error.append(c)
+    
+            print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
+            temp_table = [f"distributed sgd, mini-batch, and node={node}", lr, batch_size, epoch, theta0[0]]
+            for z in theta:
+                temp_table.append(z.round(decimals=3))
+            table.append(temp_table)   
+    
+            old_theta.append(old_th)  
+            errors.append(error)    
+    
+        # visualisation
+        ## gradient
+        if visual == True:
+            for lr in range(len(learning_rate)):
+                all_w = np.array(old_theta[lr])
+                if all_w.shape[1] > 2:
+                    break
+                contour(model.coef_.flatten(), all_w, learning_rate[lr])  
     
 ##########################################################
 ## csv
