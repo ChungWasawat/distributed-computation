@@ -61,7 +61,7 @@ def all_grad(node, order, theta0, theta,  dataset):
         except:
             return ( grad0, grad, ne, cc)
 
-def contour(m, path, lr):
+def contour(m, path, lr, node):
     plt.figure()
     x,y = m[0], m[1]
     plt.xlim(-x*3, x*3)
