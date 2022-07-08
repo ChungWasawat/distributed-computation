@@ -106,7 +106,8 @@ def random_network(node: int, p: float) -> np.array:
 def visit_adj(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
     if adj_m[node] == []:
         #print("case0", node, neighbour, "nothing", visited)
-        return visit_adj(adj_m, node+1, neighbour, visited) 
+        visited.append(node)
+        return visited
     elif adj_m[node] == [] and node == len(adj_m.keys())-1:
         #print("case0.5", node, neighbour, "nothing", visited)
         return visited 
@@ -128,7 +129,8 @@ def visit_adj(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
 
 def visit_adj2(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
     if adj_m[node] == []:
-        return visit_adj2(adj_m, node+1, neighbour, visited) 
+        visited.append(node)
+        return visited
     elif adj_m[node] == [] and node == len(adj_m.keys())-1:
         return visited 
     if node not in visited:
@@ -146,21 +148,30 @@ def visit_adj2(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
 
 def create_path(adj_m: np.array, adj_m_d:dict):
     temp_v = []
-    temp_dict = adj_m_d.copy()
     
     for i in range(len(adj_m_d.keys())):
         v = visit_adj2(adj_m_d, i, 0, [])  
         if len(v) == len(adj_m_d.keys()):
             break                 
         if len(v) > 1:
-            if i == len(visit_graph)-1:
+            if i == len(adj_m_d.keys())-1:
                 if i-1 not in v:
                     adj_m_d[i].append(i-1)
                     adj_m_d[i-1].append(i)
                     adj_m[i,i-1] = 1
                     adj_m[i-1,i] = 1
                 else:
-                    pass
+                    if temp_v == []:
+                        temp_v = v.copy()
+                    elif len( set(temp_v).intersection(set(v)) ) == 0:
+                        print("v =", v[0]," i =", i)
+                        adj_m_d[v[0]].append(temp_v[0])
+                        adj_m_d[temp_v[0]].append(v[0])
+                        adj_m[v[0],temp_v[0]] = 1
+                        adj_m[temp_v[0],v[0]] = 1     
+                        temp_v = []                   
+                    else:
+                        continue
             else:
                 if i+1 not in v:
                     adj_m_d[i].append(i+1)
@@ -168,9 +179,19 @@ def create_path(adj_m: np.array, adj_m_d:dict):
                     adj_m[i,i+1] = 1
                     adj_m[i+1,i] = 1                   
                 else:
-                    pass
+                    if temp_v == []:
+                        temp_v = v.copy()
+                    elif len( set(temp_v).intersection(set(v)) ) == 0:
+                        print("v =", v[0]," i =", i)
+                        adj_m_d[v[0]].append(temp_v[0])
+                        adj_m_d[temp_v[0]].append(v[0])
+                        adj_m[v[0],temp_v[0]] = 1
+                        adj_m[temp_v[0],v[0]] = 1     
+                        temp_v = []                   
+                    else:
+                        continue
         else:
-            if i == len(visit_graph)-1:
+            if i == len(adj_m_d.keys())-1:
                 adj_m_d[i].append(i-1)
                 adj_m_d[i-1].append(i)
                 adj_m[i,i-1] = 1
@@ -217,20 +238,23 @@ def create_path(adj_m: np.array, adj_m_d:dict):
 node = 5
 prob = 0.1
 network_matrix, network_matrix_dict = random_network(node, prob)
-network_matrix_dict = {0: [2], 1: [3], 2: [0], 3: [1], 4: []}
-#print("start matrix", network_matrix, network_matrix_dict)
+
+#network_matrix_dict = {0: [], 1: [], 2: [], 3: [6], 4: [], 5: [7], 6: [3], 7: [5], 8: [], 9: []}
+#print(network_matrix)
 print("start matrix", network_matrix_dict)
 
 #visit_graph = visit_adj(network_matrix_dict, 0, 0, [False]*5)
-visit_graph = visit_adj2(network_matrix_dict, 0, 0, [])
-print("show connectivity 1", visit_graph)
+#visit_graph = visit_adj2(network_matrix_dict, 0, 0, [])
+#print("show connectivity 1", visit_graph)
 
-a,b = create_path(network_matrix, network_matrix_dict)
-print("new matrix", b)
+new_matrix,new_matrix_dict = create_path(network_matrix, network_matrix_dict)
+#print(new_matrix)
+#print("new matrix", new_matrix_dict)
 
-visit_graph = visit_adj2(network_matrix_dict, 0, 0, [])
-print("show connectivity 2", visit_graph)
+#visit_graph = visit_adj2(new_matrix_dict, 0, 0, [])
+#print("show connectivity 2", visit_graph)
 
+#print(network_matrix_dict,"\n",new_matrix_dict)
 
 ##########################################################
 ## sgd
