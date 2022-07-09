@@ -169,7 +169,8 @@ for node in nodes:
                 
             old_th = []
             old_th.append(theta)
-            error = []    
+            error = []
+            cost = 0
             
             for t in range(epoch):
                 for d in range(max_divided_n):
@@ -177,6 +178,7 @@ for node in nodes:
                     mean_grad0 /= ne
                     mean_grad /= ne
                     c /= ne
+                    cost += c
                     
                     theta0 = theta0 - (lr * mean_grad0)
                     theta = theta - (lr * mean_grad)
@@ -185,7 +187,7 @@ for node in nodes:
                         old_th.append(theta) 
                 
                 if t%every_t==0:
-                    error.append(c/(max_divided_n-1))
+                    error.append(cost/(max_divided_n-1))
         
             print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
             temp_table = [f"distributed sgd, node ={node}", lr, 0, epoch, theta0[0]]
@@ -222,7 +224,8 @@ for node in nodes:
             
             old_th = []
             old_th.append(theta)
-            error = []    
+            error = []
+            cost = 0
             
             for t in range(epoch):
                 for d in range(max_divided_n):
@@ -230,6 +233,7 @@ for node in nodes:
                     mean_grad0 /= ne
                     mean_grad /= ne
                     c /= ne
+                    cost += c
                     
                     sum_theta0 += mean_grad0
                     sum_theta += mean_grad
@@ -250,7 +254,7 @@ for node in nodes:
                         
                 if t % every_t ==0:
                     old_th.append(theta)              
-                    error.append(c)
+                    error.append(cost/(max_divided_n-1))
     
             print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
             temp_table = [f"distributed sgd, mini-batch, and node={node}", lr, batch_size, epoch, theta0[0]]
