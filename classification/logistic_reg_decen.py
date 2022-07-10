@@ -8,7 +8,7 @@ from numpy.random import seed
 from numpy.random import randn
 from numpy.random import uniform
 from numpy.random import shuffle
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
 import matplotlib.pyplot as plt
@@ -18,18 +18,18 @@ def theta_init(seed_num: int, row: int) -> np.array:
     theta = randn(1, row).flatten()
     return theta[0], theta[1:]
 
-def y_hat(w: np.array, X: np.array, b: np.array) -> np.array:
+def sigmoid(w, X, b):
     X_T = X.reshape(X.size,1)
     xx = np.dot(w.reshape(1, w.size), X_T).flatten() + b
-    return xx
+    return 1 / (1 + np.exp(-xx))
 
-def compute_grad(y_h,y ,X_T):
-    loss = y_h-y
+def compute_grad(a,y,X_T):
+    loss = a-y
     grad = loss * X_T
     return grad.flatten()
 
-def cost(y_h,y):
-    return 0.5 * ((y_h-y)**2)
+def cost(a,y):
+    return (-y * np.log10(a)) - ((1-y) * np.log10(1-a))
 
 def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list):
     if node ==0:
@@ -38,7 +38,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             y = dataset[node][order][-1]
             t0 = theta0[node]
             t= theta[node]
-            a = y_hat(t, x, t0)
+            a = sigmoid(t, x, t0)
             g = compute_grad(a, y, x)
             
             all_grad0 = []
@@ -66,7 +66,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             y = dataset[node][order][-1]
             t0 = theta0[node]
             t= theta[node]
-            a = y_hat(t, x, t0)
+            a = sigmoid(t, x, t0)
             g = compute_grad(a, y, x)
             
             all_grad0.append((a-y)[0])
@@ -165,30 +165,6 @@ def random_network(node: int, p: float) -> np.array:
 
 def visit_adj(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
     if adj_m[node] == []:
-        #print("case0", node, neighbour, "nothing", visited)
-        visited[node] = True
-        return visited
-    elif adj_m[node] == [] and node == len(adj_m.keys())-1:
-        #print("case0.5", node, neighbour, "nothing", visited)
-        return visited 
-    if visited[node] == False:
-        visited[node] = True
-    if visited[adj_m[node][neighbour]] ==True and adj_m[node][neighbour] == adj_m[node][-1]:
-        #print("case1", node, neighbour, adj_m[node][neighbour], visited)
-        return visited
-    elif visited[adj_m[node][neighbour]] ==True :
-        #print("case2", node, neighbour, adj_m[node][neighbour], visited)
-        return visit_adj(adj_m, node, neighbour+1, visited) 
-    elif visited[adj_m[node][neighbour]] == False and adj_m[node][neighbour] == adj_m[node][-1]:
-        #print("case3", node, neighbour, adj_m[node][neighbour], visited)
-        return visit_adj(adj_m, adj_m[node][neighbour], 0, visited)
-    else:
-        #print("case4", node, neighbour, adj_m[node][neighbour], visited)
-        visited = visit_adj(adj_m, adj_m[node][neighbour], 0, visited) 
-        return visit_adj(adj_m, node, neighbour+1, visited)
-
-def visit_adj2(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
-    if adj_m[node] == []:
         visited.append(node)
         return visited
     elif adj_m[node] == [] and node == len(adj_m.keys())-1:
@@ -198,18 +174,18 @@ def visit_adj2(adj_m:dict, node:int, neighbour:int, visited:list) -> list:
     if adj_m[node][neighbour] in visited and adj_m[node][neighbour] == adj_m[node][-1]:
         return visited
     elif adj_m[node][neighbour] in visited :
-        return visit_adj2(adj_m, node, neighbour+1, visited) 
+        return visit_adj(adj_m, node, neighbour+1, visited) 
     elif adj_m[node][neighbour] not in visited and adj_m[node][neighbour] == adj_m[node][-1]:
-        return visit_adj2(adj_m, adj_m[node][neighbour], 0, visited)
+        return visit_adj(adj_m, adj_m[node][neighbour], 0, visited)
     else:
-        visited = visit_adj2(adj_m, adj_m[node][neighbour], 0, visited) 
-        return visit_adj2(adj_m, node, neighbour+1, visited)
+        visited = visit_adj(adj_m, adj_m[node][neighbour], 0, visited) 
+        return visit_adj(adj_m, node, neighbour+1, visited)
 
 def create_path(adj_m: np.array, adj_m_d:dict):
     temp_v = []
     
     for i in range(len(adj_m_d.keys())):
-        v = visit_adj2(adj_m_d, i, 0, [])  
+        v = visit_adj(adj_m_d, i, 0, [])  
         if len(v) == len(adj_m_d.keys()):
             break                 
         if len(v) > 1:
@@ -267,54 +243,41 @@ def create_path(adj_m: np.array, adj_m_d:dict):
 ## import data
 path = os.getcwd()
 
-data1 = path + "\data\\airfoil_self_noise.dat"
-col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
-df1 = pd.read_table(data1, sep="\t", names=col1)
+data1 = path + "\data\\data_banknote_authentication.txt"
+col1 = ['variance', 'skewness', 'curtosis', 'entropy', 'class']
 
-# X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:2] 
-y = df1.values[:, 5]
+df1 = pd.read_table(data1, sep=",", names=col1)
+
+X = df1.values[:, 0:4] 
+Y = df1.values[:, 4]
 
 std_scaler = StandardScaler()
 X = std_scaler.fit_transform(X)
-all_data = np.c_[X,y]
+all_data = np.c_[X,Y]
 
 #################################################################
 ## crete network
 node = 5
-prob = 0.5
+prob = 1
 network_matrix, network_matrix_dict = random_network(node, prob)
-
-#network_matrix_dict = {0: [], 1: [], 2: [], 3: [6], 4: [], 5: [7], 6: [3], 7: [5], 8: [], 9: []}
-#print(network_matrix)
 print("start matrix", network_matrix_dict)
 
-#visit_graph = visit_adj(network_matrix_dict, 0, 0, [False]*5)
-#visit_graph = visit_adj2(network_matrix_dict, 0, 0, [])
-#print("show connectivity 1", visit_graph)
-
 new_matrix, new_matrix_dict = create_path(network_matrix, network_matrix_dict)
-#print(new_matrix)
 print("new matrix", new_matrix_dict)
 
-#visit_graph = visit_adj2(new_matrix_dict, 0, 0, [])
-#print("show connectivity 2", visit_graph)
-
-#print(network_matrix_dict,"\n",new_matrix_dict)
-
 #################################################################
-## linear regression
-model = LinearRegression()
-model.fit(X, y)
+## logistic regression
+model = LogisticRegression()
+model.fit(X, Y)
 
-print("from linear regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
+print("from logistic regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
 
 col_table = ["model", "learning rate", "batch", "epoch", "intercept"]
-table = [["linear regression", 0, 0, 0, model.intercept_.round(decimals=3)]]
-for z in range(model.coef_.size):
-    table[0].append(model.coef_[z].round(decimals=3))
-    col_table.append(f"theta{z+1}")
-
+table = [["logistic regression", 0, 0, 0, model.intercept_[0].round(decimals=3)]]
+for m in range(model.coef_.size):
+    table[0].append(model.coef_.flatten()[m].round(decimals=3))
+    col_table.append(f"theta{m+1}")
+    
 ##########################################################
 ## sgd
 theta_is_zero = False
@@ -367,8 +330,7 @@ for lr in learning_rate:
             
             if t%every_t==0:
                 error.append(all_loss)
-            break
-        break
+
     # for n in range(node):        
     #     print("learning rate=",lr, "at node",n, theta0[n].round(decimals=3), theta[n].round(decimals=3))
     # temp_table = [f"distributed sgd, node ={node}", lr, 0, epoch, theta0[0]]
@@ -383,7 +345,7 @@ if visual == True:
     for lr in range(len(learning_rate)):
         all_e = np.array(errors[lr])
         converge(all_e, len(errors[lr]), learning_rate[lr])
-
+        
 ##########################################################
 ## csv
 # data2 = path + "\csv\\cla_distributed_sgd.csv"
