@@ -15,7 +15,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 def theta_init(seed_num: int, row: int) -> np.array:
-    seed(seed_num)
+    # seed(seed_num)
     theta = randn(1, row).flatten()
     return theta[0], theta[1:]
 
@@ -42,6 +42,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             a = y_hat(t, x, t0)
             g = compute_grad(a, y, x)
             
+            #print("compute grad",t)
             all_grad0 = []
             all_grad = []
             all_cost = []
@@ -84,19 +85,23 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
             temp_theta0 = theta0[node]
             temp_theta = theta[node]
             
+            #print("own theta",temp_theta)
             for i in network[node]:
                 temp_theta0 += theta0[i]
                 temp_theta += theta[i]
-            
+                #print("add neighbours",temp_theta)
+                
             n_nodes = len(network[node]) + 1
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
+            #print(n_nodes,temp_theta)
 
             new_theta0 = theta0.copy()
             new_theta = theta.copy()
             
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
+            #print("new theta",new_theta[node])
             return new_theta0, new_theta
         except:
             new_theta0=theta0.copy()
@@ -123,7 +128,7 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
         except:
             return new_theta0, new_theta 
 
-def converge(error, step, lr, prob, node):
+def converge(error, step, lr, prob, node="all node"):
     plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
@@ -150,8 +155,9 @@ def random_network(node: int, p: float) -> np.array:
             nw[i,j] = 1
             nw[j,i] = 1
         else:
-            x = uniform(0,1)
+            x = uniform(0,1)         
             if x <= p:
+                #print(x)
                 nw[i,j] = 1
                 nw[j,i] = 1 
                 if j not in route[i]:
@@ -282,8 +288,8 @@ all_data = np.c_[X,y]
 
 #################################################################
 ## crete network
-node = 5
-prob = 0.9
+node = 7
+prob = 0.1
 network_matrix, network_matrix_dict = random_network(node, prob)
 
 #network_matrix_dict = {0: [], 1: [], 2: [], 3: [6], 4: [], 5: [7], 6: [3], 7: [5], 8: [], 9: []}
@@ -325,13 +331,13 @@ epoch = 1
 every_t = 1
 learning_rate = [ 0.01, 0.1]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
+viz_everynode = False
 
 nrows = all_data.shape[0]
 divided_n = floor(nrows/node)
 max_divided_n = ceil(nrows/node) 
 remain_d = nrows%node
 
-shuffle(all_data)
 datasets = []
 start, stop = 0, divided_n
 # divide the entire dataset to n nodes
@@ -340,7 +346,7 @@ for n in range(node):
         stop+=1
         remain_d -= 1
     # shuffle for sgd
-    seed(seed_num)
+    # seed(seed_num)
     shuffle(all_data[ start : stop, : ])
     datasets.append( all_data[ start : stop, : ] )
     start, stop = stop, stop+divided_n
@@ -358,7 +364,8 @@ for lr in learning_rate:
             tt0, tt = theta_init(seed_num, X.shape[1]+1)
             theta0.append(tt0)
             theta.append(tt)
-        error.append([])
+        if viz_everynode == True:
+            error.append([])
     
     for t in range(epoch):
         all_loss = 0
@@ -369,8 +376,11 @@ for lr in learning_rate:
             theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad)
 
             if t%every_t==0:
-                for e in range(len(all_cost)):
-                    error[e].append(all_cost[e])
+                if viz_everynode == True:
+                    for e in range(len(all_cost)):
+                        error[e].append(all_cost[e])
+                else:
+                    error.append(all_loss)
 
     # for n in range(node):        
     #     print("learning rate=",lr, "at node",n, theta0[n].round(decimals=3), theta[n].round(decimals=3))
@@ -390,10 +400,15 @@ plt.show()
 
 ## error
 if visual == True:
-    for lr in range(len(learning_rate)):
-        for nd in range(len(errors[lr])):
-            all_e = np.array(errors[lr][nd])
-            converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+    if viz_everynode == True:
+        for lr in range(len(learning_rate)):
+            for nd in range(len(errors[lr])):
+                all_e = np.array(errors[lr][nd])
+                converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+    else:
+        for lr in range(len(learning_rate)):
+            all_e = np.array(errors[lr])
+            converge(all_e, len(errors[lr]), learning_rate[lr], prob)
 
 ##########################################################
 ## csv

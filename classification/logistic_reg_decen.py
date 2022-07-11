@@ -15,7 +15,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 def theta_init(seed_num: int, row: int) -> np.array:
-    seed(seed_num)
+    # seed(seed_num)
     theta = randn(1, row).flatten()
     return theta[0], theta[1:]
 
@@ -123,7 +123,7 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
         except:
             return new_theta0, new_theta 
 
-def converge(error, step, lr, prob, node):
+def converge(error, step, lr, prob, node="all node"):
     plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
@@ -257,7 +257,7 @@ all_data = np.c_[X,Y]
 #################################################################
 ## crete network
 node = 5
-prob = 1
+prob = 0.9
 network_matrix, network_matrix_dict = random_network(node, prob)
 print("start matrix", network_matrix_dict)
 
@@ -282,16 +282,17 @@ for m in range(model.coef_.size):
 theta_is_zero = False
 visual = True
 seed_num = 99
-epoch = 1
+epoch = 2
 every_t = 1
-learning_rate = [0.005, 0.01, 0.05, 0.1]
+learning_rate = [ 0.01, 0.1]
+# learning_rate = [0.005, 0.01, 0.05, 0.1]
+viz_everynode = False
 
 nrows = all_data.shape[0]
 divided_n = floor(nrows/node)
 max_divided_n = ceil(nrows/node) 
 remain_d = nrows%node
 
-shuffle(all_data)
 datasets = []
 start, stop = 0, divided_n
 # divide the entire dataset to n nodes
@@ -300,7 +301,7 @@ for n in range(node):
         stop+=1
         remain_d -= 1
     # shuffle for sgd
-    seed(seed_num)
+    # seed(seed_num)
     shuffle(all_data[ start : stop, : ])
     datasets.append( all_data[ start : stop, : ] )
     start, stop = stop, stop+divided_n
@@ -318,7 +319,8 @@ for lr in learning_rate:
             tt0, tt = theta_init(seed_num, X.shape[1]+1)
             theta0.append(tt0)
             theta.append(tt)
-        error.append([])
+        if viz_everynode == True:
+            error.append([])
     
     for t in range(epoch):
         all_loss = 0
@@ -329,8 +331,11 @@ for lr in learning_rate:
             theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad)
             
             if t%every_t==0:
-                for e in range(len(all_cost)):
-                    error[e].append(all_cost[e])
+                if viz_everynode == True:
+                    for e in range(len(all_cost)):
+                        error[e].append(all_cost[e])
+                else:
+                    error.append(all_loss)
 
     # for n in range(node):        
     #     print("learning rate=",lr, "at node",n, theta0[n].round(decimals=3), theta[n].round(decimals=3))
@@ -350,10 +355,15 @@ plt.show()
 
 ## error
 if visual == True:
-    for lr in range(len(learning_rate)):
-        for nd in range(len(errors[lr])):
-            all_e = np.array(errors[lr][nd])
-            converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+    if viz_everynode == True:
+        for lr in range(len(learning_rate)):
+            for nd in range(len(errors[lr])):
+                all_e = np.array(errors[lr][nd])
+                converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+    else:
+        for lr in range(len(learning_rate)):
+            all_e = np.array(errors[lr])
+            converge(all_e, len(errors[lr]), learning_rate[lr], prob)
         
 ##########################################################
 ## csv
