@@ -128,11 +128,14 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
         except:
             return new_theta0, new_theta 
 
-def converge(error, step, lr, prob, node="all node"):
+def converge(error, step, lr, prob, node="all nodes"):
     plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
-    title = f"learning rate= {lr}, probability= {prob}, at node{node}"
+    if type(node) == "int":
+        title = f"learning rate= {lr}, probability= {prob}, at node{node}"
+    else:
+        title = f"learning rate= {lr}, probability= {prob}, {node}"
     plt.title(title)
     plt.xlabel("step")
     plt.ylabel("error")
