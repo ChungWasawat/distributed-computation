@@ -11,6 +11,7 @@ from numpy.random import shuffle
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
+import networkx as nx
 import matplotlib.pyplot as plt
 
 def theta_init(seed_num: int, row: int) -> np.array:
@@ -122,11 +123,11 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
         except:
             return new_theta0, new_theta 
 
-def converge(error, step, lr):
+def converge(error, step, lr, prob, node):
     plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
-    title = f"learning rate = {lr}"
+    title = f"learning rate= {lr}, probability= {prob}, at node{node}"
     plt.title(title)
     plt.xlabel("step")
     plt.ylabel("error")
@@ -199,7 +200,6 @@ def create_path(adj_m: np.array, adj_m_d:dict):
                     if temp_v == []:
                         temp_v = v.copy()
                     elif len( set(temp_v).intersection(set(v)) ) == 0:
-                        print("v =", v[0]," i =", i)
                         adj_m_d[v[0]].append(temp_v[0])
                         adj_m_d[temp_v[0]].append(v[0])
                         adj_m[v[0],temp_v[0]] = 1
@@ -217,7 +217,6 @@ def create_path(adj_m: np.array, adj_m_d:dict):
                     if temp_v == []:
                         temp_v = v.copy()
                     elif len( set(temp_v).intersection(set(v)) ) == 0:
-                        print("v =", v[0]," i =", i)
                         adj_m_d[v[0]].append(temp_v[0])
                         adj_m_d[temp_v[0]].append(v[0])
                         adj_m[v[0],temp_v[0]] = 1
@@ -292,6 +291,7 @@ divided_n = floor(nrows/node)
 max_divided_n = ceil(nrows/node) 
 remain_d = nrows%node
 
+shuffle(all_data)
 datasets = []
 start, stop = 0, divided_n
 # divide the entire dataset to n nodes
@@ -309,6 +309,7 @@ errors = []
 
 for lr in learning_rate: 
     theta0, theta = [], []
+    error = []
     for n in range(node):
         if theta_is_zero == True:    
             theta0.append(0)   
@@ -317,8 +318,7 @@ for lr in learning_rate:
             tt0, tt = theta_init(seed_num, X.shape[1]+1)
             theta0.append(tt0)
             theta.append(tt)
-
-    error = []
+        error.append([])
     
     for t in range(epoch):
         all_loss = 0
@@ -329,7 +329,8 @@ for lr in learning_rate:
             theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad)
             
             if t%every_t==0:
-                error.append(all_loss)
+                for e in range(len(all_cost)):
+                    error[e].append(all_cost[e])
 
     # for n in range(node):        
     #     print("learning rate=",lr, "at node",n, theta0[n].round(decimals=3), theta[n].round(decimals=3))
@@ -340,11 +341,19 @@ for lr in learning_rate:
     errors.append(error)
 
 ## visualisation
+## graph
+temp_nx = nx.MultiGraph()
+G = nx.from_numpy_matrix(new_matrix, parallel_edges=False, create_using=temp_nx)
+G.remove_edges_from(list(nx.selfloop_edges(G)))
+nx.draw_networkx(G)
+plt.show()
+
 ## error
 if visual == True:
     for lr in range(len(learning_rate)):
-        all_e = np.array(errors[lr])
-        converge(all_e, len(errors[lr]), learning_rate[lr])
+        for nd in range(len(errors[lr])):
+            all_e = np.array(errors[lr][nd])
+            converge(all_e, all_e.size, learning_rate[lr], prob, nd)
         
 ##########################################################
 ## csv
