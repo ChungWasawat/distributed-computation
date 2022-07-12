@@ -259,7 +259,7 @@ all_data = np.c_[X,Y]
 
 #################################################################
 ## crete network
-node = 5
+node = 25
 prob = 0.9
 network_matrix, network_matrix_dict = random_network(node, prob)
 print("start matrix", network_matrix_dict)
@@ -285,7 +285,7 @@ for m in range(model.coef_.size):
 theta_is_zero = False
 visual = True
 seed_num = 99
-epoch = 2
+epoch = 5
 every_t = 1
 learning_rate = [ 0.01, 0.1]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
@@ -370,6 +370,11 @@ if visual == True:
         
 ##########################################################
 ## csv
-# data2 = path + "\csv\\cla_distributed_sgd.csv"
+data2 = path + "\csv\\"
 # df999 = pd.DataFrame(table, columns=col_table)
-# df999.to_csv(data2, index=False)
+# df999.to_csv(data2+"cla_distributed_sgd.csv", index=False)
+
+col_table2 = ["loss"]
+df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
+str_prob = str(prob)[0]+str(prob)[2]
+df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}.csv", index=False)

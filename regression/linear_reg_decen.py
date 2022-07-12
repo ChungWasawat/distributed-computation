@@ -291,8 +291,8 @@ all_data = np.c_[X,y]
 
 #################################################################
 ## crete network
-node = 7
-prob = 0.1
+node = 25
+prob = 0.9
 network_matrix, network_matrix_dict = random_network(node, prob)
 
 #network_matrix_dict = {0: [], 1: [], 2: [], 3: [6], 4: [], 5: [7], 6: [3], 7: [5], 8: [], 9: []}
@@ -330,7 +330,7 @@ for z in range(model.coef_.size):
 theta_is_zero = False
 visual = True
 seed_num = 99
-epoch = 1
+epoch = 5
 every_t = 1
 learning_rate = [ 0.01, 0.1]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
@@ -415,6 +415,11 @@ if visual == True:
 
 ##########################################################
 ## csv
-# data2 = path + "\csv\\cla_distributed_sgd.csv"
+data2 = path + "\csv\\"
 # df999 = pd.DataFrame(table, columns=col_table)
-# df999.to_csv(data2, index=False)
+# df999.to_csv(data2+"cla_distributed_sgd.csv", index=False)
+
+col_table2 = ["loss"]
+df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
+str_prob = str(prob)[0]+str(prob)[2]
+df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
