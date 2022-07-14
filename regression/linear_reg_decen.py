@@ -46,7 +46,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             all_grad0 = []
             all_grad = []
             all_cost = []
-         
+
             all_grad0.append((a-y)[0])
             all_grad.append(g)           
             all_cost.append( cost(a,y)[0] )
@@ -77,6 +77,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             all_c += cost(a,y)[0]
             return all_grad0, all_grad, all_cost, all_c, n_cost+1
         except:
+            all_cost.append(0)
             return all_grad0, all_grad, all_cost, all_c, n_cost
 
 def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, all_grad0:list, all_grad:list):
@@ -94,14 +95,14 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
             n_nodes = len(network[node]) + 1
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
-            #print(n_nodes,temp_theta)
-
+            # print(n_nodes,temp_theta)
+  
             new_theta0 = theta0.copy()
             new_theta = theta.copy()
-            
+
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
-            #print("new theta",new_theta[node])
+            # print("new theta",new_theta[node])
             return new_theta0, new_theta
         except:
             new_theta0=theta0.copy()
@@ -121,7 +122,7 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
             n_nodes = len(network[node]) + 1
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
-
+ 
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
             return new_theta0, new_theta
@@ -297,7 +298,7 @@ network_matrix, network_matrix_dict = random_network(node, prob)
 
 #network_matrix_dict = {0: [], 1: [], 2: [], 3: [6], 4: [], 5: [7], 6: [3], 7: [5], 8: [], 9: []}
 #print(network_matrix)
-print("start matrix", network_matrix_dict)
+# print("start matrix", network_matrix_dict)
 
 #visit_graph = visit_adj(network_matrix_dict, 0, 0, [False]*5)
 #visit_graph = visit_adj2(network_matrix_dict, 0, 0, [])
@@ -305,7 +306,7 @@ print("start matrix", network_matrix_dict)
 
 new_matrix, new_matrix_dict = create_path(network_matrix, network_matrix_dict)
 #print(new_matrix)
-print("new matrix", new_matrix_dict)
+# print("new matrix", new_matrix_dict)
 
 #visit_graph = visit_adj2(new_matrix_dict, 0, 0, [])
 #print("show connectivity 2", visit_graph)
@@ -329,12 +330,13 @@ for z in range(model.coef_.size):
 ## sgd
 theta_is_zero = False
 visual = True
+err_everynode = True
 seed_num = 99
 epoch = 5
 every_t = 1
 learning_rate = [ 0.01, 0.1]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
-viz_everynode = False
+
 
 nrows = all_data.shape[0]
 divided_n = floor(nrows/node)
@@ -367,8 +369,6 @@ for lr in learning_rate:
             tt0, tt = theta_init(seed_num, X.shape[1]+1)
             theta0.append(tt0)
             theta.append(tt)
-        if viz_everynode == True:
-            error.append([])
     
     for t in range(epoch):
         all_loss = 0
@@ -379,12 +379,11 @@ for lr in learning_rate:
             theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad)
 
             if t%every_t==0:
-                if viz_everynode == True:
-                    for e in range(len(all_cost)):
-                        error[e].append(all_cost[e])
+                if err_everynode == True:
+                    error.append(all_cost)
                 else:
                     error.append(all_loss)
-
+    
     # for n in range(node):        
     #     print("learning rate=",lr, "at node",n, theta0[n].round(decimals=3), theta[n].round(decimals=3))
     # temp_table = [f"distributed sgd, node ={node}", lr, 0, epoch, theta0[0]]
@@ -403,11 +402,11 @@ plt.show()
 
 ## error
 if visual == True:
-    if viz_everynode == True:
+    if err_everynode == True:
         for lr in range(len(learning_rate)):
-            for nd in range(len(errors[lr])):
-                all_e = np.array(errors[lr][nd])
-                converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+            all_e = np.array(errors[lr])
+            for nd in range(node):
+                converge(all_e[:,nd], all_e.shape[0], learning_rate[lr], prob, nd)
     else:
         for lr in range(len(learning_rate)):
             all_e = np.array(errors[lr])
@@ -419,7 +418,13 @@ data2 = path + "\csv\\"
 # df999 = pd.DataFrame(table, columns=col_table)
 # df999.to_csv(data2+"cla_distributed_sgd.csv", index=False)
 
-col_table2 = ["loss"]
-df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
-str_prob = str(prob)[0]+str(prob)[2]
-df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
+if err_everynode == False:
+    col_table2 = ["loss"]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
+    str_prob = str(prob)[0]+str(prob)[2]
+    df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
+else:
+    col_table2 = [f"node{z}" for z in range(node)]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1
+    str_prob = str(prob)[0]+str(prob)[2]
+    df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}_each_err.csv", index=False)

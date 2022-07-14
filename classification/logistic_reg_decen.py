@@ -76,6 +76,7 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             all_c += cost(a,y)[0]
             return all_grad0, all_grad, all_cost, all_c, n_cost+1
         except:
+            all_cost.append(0)  
             return all_grad0, all_grad, all_cost, all_c, n_cost
 
 def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, all_grad0:list, all_grad:list):
@@ -262,10 +263,10 @@ all_data = np.c_[X,Y]
 node = 25
 prob = 0.9
 network_matrix, network_matrix_dict = random_network(node, prob)
-print("start matrix", network_matrix_dict)
+# print("start matrix", network_matrix_dict)
 
 new_matrix, new_matrix_dict = create_path(network_matrix, network_matrix_dict)
-print("new matrix", new_matrix_dict)
+# print("new matrix", new_matrix_dict)
 
 #################################################################
 ## logistic regression
@@ -289,7 +290,7 @@ epoch = 5
 every_t = 1
 learning_rate = [ 0.01, 0.1]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
-viz_everynode = False
+err_everynode = True
 
 nrows = all_data.shape[0]
 divided_n = floor(nrows/node)
@@ -322,8 +323,6 @@ for lr in learning_rate:
             tt0, tt = theta_init(seed_num, X.shape[1]+1)
             theta0.append(tt0)
             theta.append(tt)
-        if viz_everynode == True:
-            error.append([])
     
     for t in range(epoch):
         all_loss = 0
@@ -334,9 +333,8 @@ for lr in learning_rate:
             theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad)
             
             if t%every_t==0:
-                if viz_everynode == True:
-                    for e in range(len(all_cost)):
-                        error[e].append(all_cost[e])
+                if err_everynode == True:
+                    error.append(all_cost)
                 else:
                     error.append(all_loss)
 
@@ -358,11 +356,11 @@ plt.show()
 
 ## error
 if visual == True:
-    if viz_everynode == True:
+    if err_everynode == True:
         for lr in range(len(learning_rate)):
-            for nd in range(len(errors[lr])):
-                all_e = np.array(errors[lr][nd])
-                converge(all_e, all_e.size, learning_rate[lr], prob, nd)
+            all_e = np.array(errors[lr])
+            for nd in range(node):
+                converge(all_e[:,nd], all_e.shape[0], learning_rate[lr], prob, nd)
     else:
         for lr in range(len(learning_rate)):
             all_e = np.array(errors[lr])
@@ -374,7 +372,14 @@ data2 = path + "\csv\\"
 # df999 = pd.DataFrame(table, columns=col_table)
 # df999.to_csv(data2+"cla_distributed_sgd.csv", index=False)
 
-col_table2 = ["loss"]
-df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
-str_prob = str(prob)[0]+str(prob)[2]
-df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
+if err_everynode == False:
+    col_table2 = ["loss"]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #lr = 0.01
+    str_prob = str(prob)[0]+str(prob)[2]
+    df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
+else:
+    col_table2 = [f"node{z}" for z in range(node)]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1
+    str_prob = str(prob)[0]+str(prob)[2]
+    df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}_each_err.csv", index=False)
+
