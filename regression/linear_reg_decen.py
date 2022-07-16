@@ -282,8 +282,10 @@ data1 = path + "\data\\airfoil_self_noise.dat"
 col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
-# X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:5] 
+# X = df1.values[:, 1::3] 
+# X = df1.values[:, 0:3] 
+X = df1.values[:, 0:4] 
+# X = df1.values[:, 0:5] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -334,7 +336,7 @@ err_everynode = True
 seed_num = 99
 epoch = 5
 every_t = 1
-learning_rate = [ 0.01, 0.1]
+learning_rate = [ 0.01]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
 
 
@@ -424,7 +426,7 @@ if err_everynode == False:
     str_prob = str(prob)[0]+str(prob)[2]
     df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
 else:
-    col_table2 = [f"node{z}" for z in range(node)]
-    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1
     str_prob = str(prob)[0]+str(prob)[2]
+    col_table2 = [f"node{z} p{str_prob}" for z in range(node)]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1
     df9999.to_csv(data2+f"reg_decen_sgd_node{node}_prob{str_prob}_each_err.csv", index=False)

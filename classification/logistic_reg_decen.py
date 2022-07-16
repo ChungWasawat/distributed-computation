@@ -251,7 +251,9 @@ col1 = ['variance', 'skewness', 'curtosis', 'entropy', 'class']
 
 df1 = pd.read_table(data1, sep=",", names=col1)
 
-X = df1.values[:, 0:4] 
+# X = df1.values[:, 1:3] 
+X = df1.values[:, 0:3] 
+# X = df1.values[:, 0:4] 
 Y = df1.values[:, 4]
 
 std_scaler = StandardScaler()
@@ -378,8 +380,8 @@ if err_everynode == False:
     str_prob = str(prob)[0]+str(prob)[2]
     df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}.csv", index=False)
 else:
-    col_table2 = [f"node{z}" for z in range(node)]
-    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1
     str_prob = str(prob)[0]+str(prob)[2]
+    col_table2 = [f"node{z} p{str_prob}" for z in range(node)]
+    df9999 = pd.DataFrame(errors[0], columns=col_table2) #0=lr 0.01 1=lr 0.1  
     df9999.to_csv(data2+f"cla_decen_sgd_node{node}_prob{str_prob}_each_err.csv", index=False)
 
