@@ -157,7 +157,7 @@ def converge2(df_error, lr, probp, probq, all_node):
         title = f"learning rate= {lr}, probability p= {probp}, probability q= {probq}"
         
     else:
-        title = f"learning rate= {lr}, probability p= {probp}, probability q= {probq}"
+        title = f"learning rate= {lr}, probability p= {probp}"
         
     plt.title(title)
     plt.xlabel("step")
@@ -307,23 +307,32 @@ df1 = pd.read_table(data1, sep="\t", names=col1)
 train_test_separate = False
 std_scaler = StandardScaler()
 
+# choose a number of variables !only n>=2, n<6
+n = 5
 if train_test_separate == True:
     train, test = train_test_split(df1, test_size=0.2)
-
-    X_train = train.values[:, 0:5] 
-    y_train = train.values[:, 5]
     
-    X_test = test.values[:, 0:5] 
+    if n ==2:
+        X_train = train.values[:, 1::3]
+        X_test = test.values[:, 1::3]
+    else:       
+        X_train = train.values[:, 0:n] 
+        X_test = test.values[:, 0:n] 
+ 
+    y_train = train.values[:, 5]
     y_test = test.values[:, 5]
     
-
     X_train = std_scaler.fit_transform(X_train)
     all_data = np.c_[X_train,y_train]
 
     X_test = std_scaler.fit_transform(X_test)
     all_data_test = np.c_[X_test,y_test]
 else:
-    X = df1.values[:, 0:5] 
+    if n==2:
+        X = df1.values[:, 1::3]   
+    else:
+        X = df1.values[:, 0:n] 
+        
     y = df1.values[:, 5] 
 
     X = std_scaler.fit_transform(X)
@@ -336,8 +345,8 @@ else:
 
 #################################################################
 ## crete network
-node = 65
-probp = 0.9
+node = 20
+probp = 0.1
 network_matrix, network_matrix_dict = random_network(node, probp)
 
 new_matrix, new_matrix_dict = create_path(network_matrix, network_matrix_dict)
@@ -363,7 +372,7 @@ else:
 print("from linear regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
 
 
-##########################################################
+################################################################
 ## sgd
 theta_is_zero = False
 visual = True
@@ -462,13 +471,15 @@ for probq in qs:
             if err_everynode == True:
                 for lr in range(len(learning_rate)):
                     all_e = np.array(errors[lr])
-                    for nd in range(node):
-                        converge(all_e[:,nd], all_e.shape[0], learning_rate[lr], probp, nd)
+                    for n in range(node):
+                        converge(all_e[:,n], all_e.shape[0], learning_rate[lr], probp, n)
             else:
                 for lr in range(len(learning_rate)):
                     all_e = np.array(errors[lr])
                     converge(all_e, len(errors[lr]), learning_rate[lr], probp)
 
+## visualisation3
+## error2
 if visual == True:
     if len(learning_rate) == 1:
         if err_everynode == True:
@@ -476,6 +487,7 @@ if visual == True:
                 converge2(df777.iloc[:,i:i+node], learning_rate[0], probp, probq, err_everynode)
         else:
             converge2(df777, learning_rate[0], probp, probq, err_everynode)
+            
 ##########################################################
 ## csv
 if make_csv == True:
