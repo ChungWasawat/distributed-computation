@@ -1,26 +1,4 @@
 model,learning rate,batch,epoch,intercept,theta1,theta2
-linear regression,0.0,0,0,124.836,-3.228,-1.957
-"distributed sgd, node =3",0.005,0,10,124.824,-3.408,-1.797
-"distributed sgd, node =3",0.01,0,10,124.82,-3.557,-1.625
-"distributed sgd, node =3",0.05,0,10,124.54,-3.748,-1.284
-"distributed sgd, node =3",0.1,0,10,124.365,-3.927,-1.036
-"distributed sgd, mini-batch, and node=3",0.005,32,10,67.818,-0.543,-0.389
-"distributed sgd, mini-batch, and node=3",0.01,32,10,98.925,-1.831,-0.957
-"distributed sgd, mini-batch, and node=3",0.05,32,10,124.785,-3.274,-1.904
-"distributed sgd, mini-batch, and node=3",0.1,32,10,124.819,-3.354,-1.857
-"distributed sgd, node =4",0.005,0,10,124.74,-3.269,-1.962
-"distributed sgd, node =4",0.01,0,10,124.635,-3.323,-1.989
-"distributed sgd, node =4",0.05,0,10,124.0,-3.405,-2.778
-"distributed sgd, node =4",0.1,0,10,123.578,-3.254,-3.409
-"distributed sgd, mini-batch, and node=4",0.005,32,10,55.483,-0.057,-0.233
-"distributed sgd, mini-batch, and node=4",0.01,32,10,86.461,-1.297,-0.709
-"distributed sgd, mini-batch, and node=4",0.05,32,10,124.506,-3.19,-1.912
-"distributed sgd, mini-batch, and node=4",0.1,32,10,124.777,-3.249,-1.957
-"distributed sgd, node =5",0.005,0,10,124.764,-3.267,-1.927
-"distributed sgd, node =5",0.01,0,10,124.694,-3.309,-1.871
-"distributed sgd, node =5",0.05,0,10,124.661,-3.162,-1.511
-"distributed sgd, node =5",0.1,0,10,124.977,-3.064,-1.294
-"distributed sgd, mini-batch, and node=5",0.005,32,10,46.839,0.254,-0.163
-"distributed sgd, mini-batch, and node=5",0.01,32,10,76.271,-0.915,-0.574
-"distributed sgd, mini-batch, and node=5",0.05,32,10,123.807,-3.131,-1.851
-"distributed sgd, mini-batch, and node=5",0.1,32,10,124.781,-3.251,-1.939
+linear regression,0.0,0,0,124.836,1.267,-3.111
+"distributed sgd, node =5",0.01,0,1,118.914,0.448,-2.291
+"distributed sgd, mini-batch, and node=5",0.01,32,50,123.733,0.843,-2.692

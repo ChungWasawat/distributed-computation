@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 ##############################################################################
 ## compute function
 def init_theta(seed_num: int, nrow: int) -> np.array:
-    # seed(seed_num)
+    seed(seed_num)
     theta = randn(1, nrow).flatten()
     return theta[0], theta[1:]
 
-def init_all_theta(n_node, ncol, theta_is_zero, seed_num=49):
+def init_all_theta(n_node, ncol, theta_is_zero, seed_num=99):
     theta0, theta = [], []
     for _ in range(n_node):
         if theta_is_zero == True:    
@@ -25,7 +25,7 @@ def init_all_theta(n_node, ncol, theta_is_zero, seed_num=49):
             theta.append(tt)
     return theta0, theta
 
-def init_all_minmax_theta(n_node, nrow, theta_is_zero, seed_num=49):
+def init_all_minmax_theta(n_node, nrow, theta_is_zero, seed_num=99):
     theta0, theta = [], []
     for _ in range(n_node):
         if theta_is_zero == True:    
@@ -508,7 +508,7 @@ def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 
         # divide the entire dataset to n nodes
         for n in range(node):   
             # shuffle for sgd
-            # seed(seed_num)
+            seed(99)
             shuffle(all_data[ start : stop, : ])
             datasets.append( all_data[ start : stop, : ] )
             start, stop = stop, stop+divided_n  
@@ -517,11 +517,11 @@ def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 
             else:
                 remain_data = np.concatenate((remain_data, all_data[ start : start+sample, : ]))
         
-        # add remained data to pool
+        # add remained data to the pool
         if stop != all_rows:
             remain_data = np.concatenate((remain_data, all_data[start: , :]))
         
-        # create new data from normal distribution of pool
+        # create new data from normal distribution of the pool
         for nn in range(new_node):
             for n in range(remain_data.shape[1]):
                 mean = np.mean(remain_data[:,n])
@@ -554,7 +554,7 @@ def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 
                 stop+=1
                 remain_d -= 1
             # shuffle for sgd
-            # seed(seed_num)
+            seed(99)
             shuffle(all_data[ start : stop, : ])
             datasets.append( all_data[ start : stop, : ] )
             start, stop = stop, stop+divided_n

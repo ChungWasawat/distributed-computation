@@ -77,7 +77,7 @@ col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
 # X = df1.values[:, 0::3] #freq and velocity
-X = df1.values[:, 0:2] 
+X = df1.values[:, 1::3] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -99,11 +99,12 @@ for z in range(model.coef_.size):
     
 ##########################################################
 # sgd
-learning_rate = [0.005, 0.01, 0.05, 0.1]
-epoch = 10
+learning_rate = [0.01]
+epoch = 1
 batch_size = 32
 
-nodes = [3,4,5]
+nodes = [5]
+# nodes = [3,4,5]
 for node in nodes:
     nrows = all_data.shape[0]
     divided_n = floor( nrows/node)
@@ -147,7 +148,7 @@ for node in nodes:
         
         old_theta.append(old_th)   
      
-    
+    print(theta)
     for lr in range(len(learning_rate)):
         all_w = np.array(old_theta[lr])
         if all_w.shape[1] > 2:
@@ -159,7 +160,7 @@ for node in nodes:
  
     old_theta = []
     errors = []   
- 
+    epoch = 50
     for lr in learning_rate:
         seed(99)
         theta = randn(1, X.shape[1]+1).flatten()
@@ -192,7 +193,7 @@ for node in nodes:
         
         old_theta.append(old_th)   
      
-    
+    print(theta)
     for lr in range(len(learning_rate)):
         all_w = np.array(old_theta[lr])
         if all_w.shape[1] > 2:

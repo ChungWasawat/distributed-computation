@@ -48,7 +48,7 @@ def compute_grad(y_h,y ,X_T):
     return grad.flatten()
 
 def cost(a,y):
-    return (-y * np.log10(a)) - ((1-y) * np.log10(1-a))
+    return - ( (y * np.log2(a)) + ((1-y) * np.log2(1-a)) )
 
 def min_max_theta(theta0, theta, mn_mx):
     temp = []

@@ -16,7 +16,7 @@ probp = 0.1                         # probability for a number of links that con
 matrix, matrix_dict = create_draw_network(node, probp)
 
 ########################### import data #######################################
-col = 5                             # choose a number of variables (only n>=2, n<6)
+col = 2                             # choose a number of variables (only n>=2, n<6)
 train_test_separate = False         # separate train/test for early stopping?
 
 path = os.getcwd()
@@ -28,7 +28,7 @@ df1 = pd.read_table(data1, sep="\t", names=col1)
 
 if train_test_separate == True:
     train, test = train_test_split(df1, test_size=0.2)
-    # choose specific columns
+    # choose specific columns # angle+thickness are high correlation
     if col ==2:
         X_train = train.values[:, 1::3]
         X_test = test.values[:, 1::3]
@@ -62,7 +62,8 @@ else:
 # node = a number of nodes
 # integer 1 means if 1st boolean is true, it will replace one node's data with fake data
 # next integer(default =1) is sample number to create fake data 
-datasets, max_d = split_create_data(False, all_data, node, 1)
+fake = False
+datasets, max_d = split_create_data(fake, all_data, node, 2)
 
 ########################### compute gradients #################################
 # default 
@@ -76,13 +77,14 @@ visual = True               # show graph
 make_csv = False            # create csv for this data (not availble)
 err_everynode = False       # separate error of each node
 seed_num = 99               # seed for random everything on the model
-epoch = 1                   # iteration for training model
+epoch = 10                   # iteration for training model
 every_t = 1                 # store error at data that % t ==0 
 learning_rate = [ 0.01]     # only one for now
 
 # probability for failure communication
-qs = [1] # no prob fail 
+# qs = [1] # no prob fail 
 # qs = [0.1,0.5,0.9]
+qs = [1]
 
 # 1 for centralised sgd, 2 for decentralised sgd
 case = 1
@@ -94,7 +96,7 @@ if case==1:
         for lr in learning_rate: 
             error = []
             #initial theta
-            theta0, theta = init_all_theta(node, X.shape[1], theta_is_zero)            
+            theta0, theta = init_all_theta(1, X.shape[1], theta_is_zero)            
             succ_comm = [0]*(node)
             for t in range(epoch):
                 all_loss = 0            
@@ -104,23 +106,26 @@ if case==1:
                     all_loss = all_c/ne   
                     
                     # skip this iteration because data of all nodes is not equal
-                    if ne < node:
-                        continue
+                    # if ne < node:
+                    #     continue
                     
                     #find average theta and update it
                     sum_grad0 = 0
                     sum_grad = np.zeros(X.shape[1])
+                    nee = 0
                     for i in range(ne):
                         x = uniform(0,1) 
                         if x<=probq:
                             sum_grad0 += all_grad0[i]
                             sum_grad += all_grad[i]
                             succ_comm[i] +=1
-                    avg_grad0 = sum_grad0 / ne
-                    avg_grad = sum_grad / ne
-                    
-                    theta0 = theta0 - (lr * avg_grad0)
-                    theta = theta - (lr * avg_grad)
+                            nee+=1
+                    if nee >0:
+                        avg_grad0 = sum_grad0 / nee
+                        avg_grad = sum_grad / nee
+                        
+                        theta0[0] = theta0[0] - (lr * avg_grad0)
+                        theta[0] = theta[0] - (lr * avg_grad)
                     
                     #store error
                     if t%every_t==0:
@@ -133,7 +138,7 @@ if case==1:
                             
             errors.append(error)
             print(f"avg successful communication for decen sgd with n={node}",np.mean(succ_comm))
- 
+            print(f"n={node}, avg of theta0 ",np.mean(theta0), "avg of theta", np.mean(theta, axis=0))
             ## visualisation   
             str_probp = str(1)
             if probq !=1:
