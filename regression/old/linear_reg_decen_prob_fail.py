@@ -81,13 +81,13 @@ def compute_all_grad(node:int, order:int, theta0:list, theta:list, dataset:list)
             all_cost.append(0)
             return all_grad0, all_grad, all_cost, all_c, n_cost
 
-def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, all_grad0:list, all_grad:list, probq:int):
+def update_each_theta(lr:int, network:dict, node:int, theta0:list, theta:list, all_grad0:list, all_grad:list, probq:int, success_comm:list):
     if node ==0:
         try:
             temp_theta0 = theta0[node]
             temp_theta = theta[node]
             
-            #print("own theta",temp_theta)
+            # add probability of failure
             q = 0
             for i in network[node]:
                 x = uniform(0,1)         
@@ -95,27 +95,28 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
                     temp_theta0 += theta0[i]
                     temp_theta += theta[i]
                     q+=1
-                    #print("add neighbours",temp_theta)
-                
-            n_nodes = q + 1
+            
+            # find avg value of theta
+            n_nodes = q + 1 # include itself
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
-            # print(n_nodes,temp_theta)
-  
+            
+            success_comm[node] += n_nodes
+            #update theta
             new_theta0 = theta0.copy()
             new_theta = theta.copy()
 
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
-            # print("new theta",new_theta[node])
-            return new_theta0, new_theta
+            return new_theta0, new_theta, success_comm
         except:
             new_theta0=theta0.copy()
             new_theta=theta.copy()
-            return new_theta0, new_theta
+            return new_theta0, new_theta, success_comm
     else:
-        try:           
-            new_theta0, new_theta = update_all_theta(lr,network,node-1,theta0,theta,all_grad0,all_grad,probq) 
+        try:   
+            # go to node0 first to start update
+            new_theta0, new_theta, success_comm = update_each_theta(lr,network,node-1,theta0,theta,all_grad0,all_grad,probq, success_comm) 
             
             temp_theta0 = theta0[node]
             temp_theta = theta[node]
@@ -132,11 +133,12 @@ def update_all_theta(lr:int, network:dict, node:int, theta0:list, theta:list, al
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
  
+            success_comm[node] += n_nodes
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
-            return new_theta0, new_theta
+            return new_theta0, new_theta, success_comm
         except:
-            return new_theta0, new_theta 
+            return new_theta0, new_theta, success_comm 
 
 def converge(error, step, lr, prob, node="all nodes"):
     plt.figure()
@@ -341,11 +343,9 @@ else:
 # values[:, 0:3]    #3variables
 # values[:, 0:4]    #4variables
 
-
-
 #################################################################
 ## crete network
-node = 20
+node = 5
 probp = 0.1
 network_matrix, network_matrix_dict = random_network(node, probp)
 
@@ -379,7 +379,7 @@ visual = True
 make_csv = False
 err_everynode = False
 seed_num = 99
-epoch = 10
+epoch = 5
 every_t = 1
 learning_rate = [ 0.01]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
@@ -415,6 +415,8 @@ for probq in qs:
     for lr in learning_rate: 
         theta0, theta = [], []
         error = []
+        succ_comm = [0]*(node)
+        
         for n in range(node):
             if theta_is_zero == True:    
                 theta0.append(0)   
@@ -432,7 +434,7 @@ for probq in qs:
                 
                 if ne < node:
                     continue
-                theta0, theta = update_all_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad, probq)
+                theta0, theta, succ_comm = update_each_theta(lr,new_matrix_dict, node-1, theta0, theta, all_grad0, all_grad, probq, succ_comm)
     
                 if t%every_t==0:
                     if err_everynode == True:

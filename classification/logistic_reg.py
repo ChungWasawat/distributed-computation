@@ -239,9 +239,9 @@ for lr in range(len(learning_rate)):
     
 ##########################################################
 ## csv
-data2 = path + "\csv\\cla_normal_sgd.csv"
-df999 = pd.DataFrame(table, columns=col_table)
-df999.to_csv(data2, index=False)
+# data2 = path + "\csv\\cla_normal_sgd.csv"
+# df999 = pd.DataFrame(table, columns=col_table)
+# df999.to_csv(data2, index=False)
 
 
 

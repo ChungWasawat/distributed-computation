@@ -95,7 +95,8 @@ for z in range(model.coef_.size):
 ##########################################################
 ###### stochastic gradient descent
 
-learning_rate = [0.005, 0.01, 0.05, 0.1]
+learning_rate = [0.01]
+# learning_rate = [0.005, 0.01, 0.05, 0.1]
 epoch =10
 batch_size = 128
 nrows = X.shape[0]
@@ -217,7 +218,6 @@ for lr in learning_rate:
     old_theta.append(old_th)    
     errors.append(error)
 
-
 # visualisation
 ## gradient
 for lr in range(len(learning_rate)):
@@ -230,6 +230,6 @@ for lr in range(len(learning_rate)):
     all_e = np.array(errors[lr])
     converge(all_e, len(errors[lr]), learning_rate[lr])
 
-data2 = path + "\csv\\reg_normal_sgd.csv"
-df999 = pd.DataFrame(table, columns=col_table)
-df999.to_csv(data2, index=False)
+# data2 = path + "\csv\\reg_normal_sgd.csv"
+# df999 = pd.DataFrame(table, columns=col_table)
+# df999.to_csv(data2, index=False)
