@@ -1,7 +1,9 @@
 from math import floor, ceil
 
 import numpy as np
-from numpy.random import randn, randint, seed, normal, uniform, shuffle 
+from numpy.random import random_sample, randint, seed, uniform, shuffle 
+import scipy.stats as stats
+from sklearn.preprocessing import StandardScaler
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,7 +12,7 @@ import matplotlib.pyplot as plt
 ## compute function
 def init_theta(seed_num: int, nrow: int) -> np.array:
     seed(seed_num)
-    theta = randn(1, nrow).flatten()
+    theta = random_sample(nrow,)
     return theta[0], theta[1:]
 
 def init_all_theta(n_node, ncol, theta_is_zero, seed_num=99):
@@ -25,18 +27,6 @@ def init_all_theta(n_node, ncol, theta_is_zero, seed_num=99):
             theta.append(tt)
     return theta0, theta
 
-def init_all_minmax_theta(n_node, nrow, theta_is_zero, seed_num=99):
-    theta0, theta = [], []
-    for _ in range(n_node):
-        if theta_is_zero == True:    
-            theta0.append(0)   
-            theta.append(np.zeros(nrow))
-        else:
-            tt0, tt = init_theta(seed_num, nrow+1)
-            theta0.append(tt0)
-            theta.append(tt)
-    return theta[0], theta[1:]
-
 def y_hat(w: np.array, X: np.array, b: np.array) -> np.array:
     X_T = X.reshape(X.size,1)
     xx = np.dot(w.reshape(1, w.size), X_T).flatten() + b
@@ -49,47 +39,75 @@ def compute_grad(y_h,y ,X_T):
 
 def cost(y_h,y):
     return 0.5 * ((y_h-y)**2)
-
+#create min max list and update the list
 def min_max_theta(theta0, theta, mn_mx):
     temp = []
-    if mn_mx == []:  
-        for t1 in range(len(theta)):
-            tp = []
+    if mn_mx == []: 
+        # initial min max with [0, thetas of node0]
+        for t2 in range(theta[0].size+1):
+            if t2 == 0: 
+                x = random_sample(1)[0]
+                if x <= theta0[0] :
+                    mn,mx = x , theta0[0] 
+                else:
+                    mn,mx = theta0[0] , x
+            else:
+                mn,mx = 0, theta[0][t2-1]
+            temp.append([mn,mx])
+            
+        # replace  min max of node 0 with others
+        for t1 in range(1, len(theta)):
             #theta0 + other thetas
             for t2 in range(theta[0].size+1):
-                if t2 == 0:
-                    if theta0[t1] >0:
-                        
-                        mn,mx = theta0[t1] , theta0[t1]  
-                    else:
-                        mn,mx = theta0[t1], theta0[t1]
-                else:
-                    if theta[t1][t2-1] >0:
-                        mn,mx = theta[t1][t2-1], theta[t1][t2-1]
-                    else:
-                        mn,mx = theta[t1][t2-1], theta[t1][t2-1]
-                
-                tp.append([mn,mx])
-            temp.append(tp)
+                if t2 == 0: 
+                    #max
+                    if theta0[t1] > temp[t2][1]:
+                        temp[t2][1] = theta0[t1]
+                    #min
+                    elif theta0[t1] < temp[t2][0]:
+                        temp[t2][0] = theta0[t1]
+                else: 
+                    # max
+                    if theta[t1][t2-1] > temp[t2][1]:
+                        temp[t2][1] = theta[t1][t2-1]
+                    # min
+                    elif theta[t1][t2-1] < temp[t2][0]:
+                        temp[t2][0] = theta[t1][t2-1]
         return temp
     else:
-        for t1 in range(len(mn_mx)):
-            for t2 in range(len(mn_mx[0])):
+        # to every node
+        for t1 in range(len(theta)):
+            #theta0 + other thetas
+            for t2 in range(theta[0].size+1):
                 if t2 ==0:
                     # min
-                    if mn_mx[t1][t2][0] > theta0[t1]:
-                        mn_mx[t1][t2][0] = theta0[t1]
+                    if mn_mx[t2][0] > theta0[t1]:
+                        mn_mx[t2][0] = theta0[t1]
                     # max
-                    elif mn_mx[t1][t2][1] < theta0[t1]:
-                        mn_mx[t1][t2][1] = theta0[t1]
+                    elif mn_mx[t2][1] < theta0[t1]:
+                        mn_mx[t2][1] = theta0[t1]
                 else:
                     # min
-                    if mn_mx[t1][t2][0] > theta[t1][t2-1]:
-                        mn_mx[t1][t2][0] = theta[t1][t2-1]
+                    if mn_mx[t2][0] > theta[t1][t2-1]:
+                        mn_mx[t2][0] = theta[t1][t2-1]
                     # max
-                    elif mn_mx[t1][t2][1] < theta[t1][t2-1]:
-                        mn_mx[t1][t2][1] = theta[t1][t2-1]
+                    elif mn_mx[t2][1] < theta[t1][t2-1]:
+                        mn_mx[t2][1] = theta[t1][t2-1]
         return mn_mx
+# choose min or max from actual theta
+def which_theta(min_value, max_value, actual_value, interval):
+    temp = np.linspace(start= min_value, stop= max_value, num=interval+1)
+    if actual_value < min_value or actual_value > max_value:
+        pass
+    x = uniform(0,1)  
+    for t in range(interval):
+        if actual_value >= temp[t] and actual_value <= temp[t+1]:
+            min_prob = (temp[t+1] - actual_value ) / (temp[t+1]- temp[t])
+            if x < min_prob:
+
+                return temp[t]
+            else:
+                return temp[t+1]
 
 ##############################################################################
 ## compute gradients for each node with one theta from master
@@ -145,7 +163,7 @@ def compute_each_grad_one_theta(node:int, order:int, theta0:list, theta:list, da
 ## compute gradients for each node
 def compute_each_grad(node:int, order:int, theta0:list, theta:list, dataset:list):
     if node ==0:
-        try:          
+        try:            
             x = dataset[node][order][0:-1]
             y = dataset[node][order][-1]
             t0 = theta0[node]
@@ -156,7 +174,7 @@ def compute_each_grad(node:int, order:int, theta0:list, theta:list, dataset:list
             all_grad0 = []
             all_grad = []
             all_cost = []
-
+            
             all_grad0.append((a-y)[0])
             all_grad.append(g)           
             all_cost.append( cost(a,y)[0] )
@@ -173,14 +191,14 @@ def compute_each_grad(node:int, order:int, theta0:list, theta:list, dataset:list
             return all_grad0, all_grad, all_cost, 0, 0
     else:
         try:
-            all_grad0, all_grad, all_cost, all_c, n_cost = compute_each_grad(node-1, order, theta0, theta, dataset) # ne for dataset is Not Equal
+            all_grad0, all_grad, all_cost, all_c, n_cost = compute_each_grad(node-1, order, theta0, theta, dataset) # ne for dataset is Not Equal            
             x = dataset[node][order][0:-1]
             y = dataset[node][order][-1]
             t0 = theta0[node]
             t= theta[node]
             a = y_hat(t, x, t0)
             g = compute_grad(a, y, x)
-            
+
             all_grad0.append((a-y)[0])
             all_grad.append(g)            
             all_cost.append( cost(a,y)[0] )           
@@ -249,52 +267,48 @@ def update_each_theta(lr:int, network:dict, node:int, theta0:list, theta:list, a
         except:
             return new_theta0, new_theta, success_comm 
 ## update thetas for all nodes -quantization
-def update_each_theta_quan(lr, network, node, theta0, theta, all_grad0, all_grad, mn_mx):
+def update_each_theta_quan(lr, network, node, theta0, theta, all_grad0, all_grad, mn_mx, mn_mx_div=4):
     if node ==0:
         try:
             temp_theta0 = theta0[node]
             temp_theta = theta[node]
-
+            theta_size = 1 + temp_theta.size
             q = 0
+            # print("node ", node,theta0[node], theta[node])
             for i in network[node]:
-                for j in range(len(mn_mx[0])):
-                    x = uniform(0,1)  
-                    
-                    if (mn_mx[i][j][1] - mn_mx[i][j][0]) ==0:
+                for j in range(theta_size):
+                    if (mn_mx[j][1] - mn_mx[j][0]) ==0:
                         continue
-                    
+          
                     if j ==0:
-                        min_prob = (mn_mx[i][j][1] - theta0[i] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        max_prob = (theta0[i] - mn_mx[i][j][0] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
+                        if theta0[i] < mn_mx[j][0] or theta0[i]> mn_mx[j][1]:
+                            # print(f"min act max t0 at {i}",mn_mx[j][0], theta0[i], mn_mx[j][1])
+                            # print(lr * all_grad0[node], lr * all_grad[node])
+                            return 0,0
                         
-                        if x < min_prob:
-                            temp_theta0 += mn_mx[i][j][0]
-                            q+=1
-                        elif x >= min_prob:
-                            temp_theta0 += mn_mx[i][j][1]
-                            q+=1
+                        num_t  = which_theta(mn_mx[j][0], mn_mx[j][1], theta0[i], mn_mx_div)
+                        temp_theta0 += num_t
+                        q+=1
                     else:
-                        min_prob = (mn_mx[i][j][1] - theta[i][j-1] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        max_prob = (theta[i][j-1] - mn_mx[i][j][0] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        
-                        if x < min_prob:
-                            temp_theta[j-1] += mn_mx[i][j][0]
-                            q+=1
-                        elif x >= min_prob:
-                            temp_theta[j-1] += mn_mx[i][j][1]
-                            q+=1                
-            
+                        if theta[i][j-1] < mn_mx[j][0] or theta[i][j-1] > mn_mx[j][1]:
+                            # print(f"min act max t{j} at {i}",mn_mx[j][0], theta[i][j-1], mn_mx[j][1])
+                            # print(lr * all_grad0[node], lr * all_grad[node])
+                            return 0,0                       
+                        num_t = which_theta(mn_mx[j][0], mn_mx[j][1], theta[i][j-1], mn_mx_div)
+                        temp_theta[j-1] += num_t
+                        q+=1 
+                
             # find avg value of theta
             n_nodes = q + 1
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes
-  
-            #update theta
+            
             new_theta0 = theta0.copy()
             new_theta = theta.copy()
-
+            #update theta
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
+            
             return new_theta0, new_theta
         except:
             new_theta0=theta0.copy()
@@ -303,44 +317,41 @@ def update_each_theta_quan(lr, network, node, theta0, theta, all_grad0, all_grad
     else:
         try:   
             # go to node0 first to start update
-            new_theta0, new_theta = update_each_theta_quan(lr,network,node-1,theta0,theta,all_grad0,all_grad,mn_mx) 
+            new_theta0, new_theta = update_each_theta_quan(lr,network,node-1,theta0,theta,all_grad0,all_grad,mn_mx, mn_mx_div) 
             
             temp_theta0 = theta0[node]
             temp_theta = theta[node]
- 
+            theta_size = 1 + temp_theta.size
             q=0
+            # print("node ", node,theta0[node], theta[node])
+            
+            if new_theta0 == 0 and new_theta ==0:
+                return 0,0
+            
             for i in network[node]:
-                for j in range(len(mn_mx[0])):
-                    x = uniform(0,1)  
-                    
-                    if (mn_mx[i][j][1] - mn_mx[i][j][0]) ==0:
+                for j in range(theta_size):
+                    if (mn_mx[j][1] - mn_mx[j][0]) ==0:
                         continue
                     
                     if j ==0:
-                        min_prob = (mn_mx[i][j][1] - theta0[i] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        max_prob = (theta0[i] - mn_mx[i][j][0] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        
-                        if x < min_prob:
-                            temp_theta0 += mn_mx[i][j][0]
-                            q+=1
-                        elif x >= min_prob:
-                            temp_theta0 += mn_mx[i][j][1]
-                            q+=1
+                        if theta0[i] < mn_mx[j][0] or theta0[i]> mn_mx[j][1]:
+                            # print(f"min act max t0 at {i}",mn_mx[j][0], theta0[i], mn_mx[j][1])
+                            # print(lr * all_grad0[node], lr * all_grad[node])
+                            return 0,0
+                        num_t  = which_theta(mn_mx[j][0], mn_mx[j][1], theta0[i], mn_mx_div)
+                        temp_theta0 += num_t
+                        q+=1
                     else:
-                        min_prob = (mn_mx[i][j][1] - theta[i][j-1] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        max_prob = (theta[i][j-1] - mn_mx[i][j][0] ) / (mn_mx[i][j][1] - mn_mx[i][j][0])
-                        
-                        if x < min_prob:
-                            temp_theta[j-1] += mn_mx[i][j][0]
-                            q+=1
-                        elif x >= min_prob:
-                            temp_theta[j-1] += mn_mx[i][j][1]
-                            q+=1     
-                            
+                        if theta[i][j-1] < mn_mx[j][0] or theta[i][j-1] > mn_mx[j][1]:
+                            # print(f"min act max t{j} at {i}",mn_mx[j][0], theta[i][j-1], mn_mx[j][1])
+                            # print(lr * all_grad0[node], lr * all_grad[node])
+                            return 0,0
+                        num_t = which_theta(mn_mx[j][0], mn_mx[j][1], theta[i][j-1], mn_mx_div)
+                        temp_theta[j-1] += num_t
+                        q+=1 
             n_nodes = q + 1
             temp_theta0 /= n_nodes
             temp_theta /= n_nodes    
- 
             new_theta0[node] = (temp_theta0 - (lr * all_grad0[node]) )
             new_theta[node] = temp_theta - (lr * all_grad[node])
             return new_theta0, new_theta
@@ -352,14 +363,15 @@ def update_each_theta_quan(lr, network, node, theta0, theta, all_grad0, all_grad
 def random_network(node: int, p: float) -> np.array:
     nw = np.zeros((node,node))
 
+    #create dict to store nodes' neighbours
     route = {}
     for i in range(node):
         route[i] = []
-
+    # delete upper bound of the matrix
     c = (node **2)
     for i in range(node-1,0,-1):
         c -= i
-
+    # i = row, j =column
     i,j = 0,0
     while c > 0:
         if i==j:
@@ -488,7 +500,6 @@ def o_split(all_data, node):
             stop+=1
             remain_d -= 1
         # shuffle for sgd
-        # seed(seed_num)
         shuffle(all_data[ start : stop, : ])
         datasets.append( all_data[ start : stop, : ] )
         start, stop = stop, stop+divided_n
@@ -496,45 +507,51 @@ def o_split(all_data, node):
     return datasets, max_divided_n
 
 ## split dataset & create fake data
-def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 1):
+def split_create_data(fake:bool, all_data, node:int, new_node:int, mu:list=[0], sigma:list=[1], limit:list=[0,0]):
+    std_scaler = StandardScaler()
     if fake == True:
         all_rows = all_data.shape[0]
         divided_n = floor(all_rows/node)
         max_divided_n = ceil(all_rows/node) 
         remain_d = all_rows%node
 
+        X = all_data[:,:-1]
+        y = all_data[:,-1]
+        
+        X = std_scaler.fit_transform(X)
+        temp_all_data = np.c_[X,y]
+
         datasets = []
         start, stop = 0, divided_n
         # divide the entire dataset to n nodes
         for n in range(node):   
             # shuffle for sgd
-            seed(99)
-            shuffle(all_data[ start : stop, : ])
-            datasets.append( all_data[ start : stop, : ] )
+            shuffle( temp_all_data[ start : stop, : ] )
+            datasets.append( temp_all_data[ start : stop, : ] )
             start, stop = stop, stop+divided_n  
-            if n ==0:
-                remain_data = all_data[ start : start+sample, : ]
-            else:
-                remain_data = np.concatenate((remain_data, all_data[ start : start+sample, : ]))
-        
-        # add remained data to the pool
-        if stop != all_rows:
-            remain_data = np.concatenate((remain_data, all_data[start: , :]))
-        
+
         # create new data from normal distribution of the pool
         for nn in range(new_node):
-            for n in range(remain_data.shape[1]):
-                mean = np.mean(remain_data[:,n])
-                std = np.std(remain_data[:,n])
-                
-                rand_data = normal(mean, std, divided_n).reshape(divided_n,1)
+            for n in range(len(mu)):
+                mean = mu[n]
+                std = sigma[n]
+                lower, upper = mean * limit[0], mean * limit[1]
+                lower = (lower-mean)/std
+                upper = (upper-mean)/std
+  
+                rand_data =stats.truncnorm.rvs(lower,upper,loc=mean
+                          ,scale=std,size=divided_n).reshape(divided_n,1)
                 if n == 0:
                     temp_data = rand_data
+                elif n == len(mu)-1:
+                    temp_data = std_scaler.transform(temp_data)
+                    temp_data = np.concatenate((temp_data, rand_data), axis=1) 
                 else:
-                    temp_data = np.concatenate((temp_data, rand_data), axis=1)
+                    temp_data = np.concatenate((temp_data, rand_data), axis=1)   
                     
             x = randint(0,node)    
             datasets[x] = temp_data
+            
         return datasets, divided_n
     
     else:
@@ -542,10 +559,13 @@ def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 
         divided_n = floor(all_rows/node)
         max_divided_n = ceil(all_rows/node) 
         remain_d = all_rows%node
-    
-        datasets = []
-        start, stop = 0, divided_n
-    
+ 
+        X = all_data[:,:-1]
+        y = all_data[:,-1]
+        
+        X = std_scaler.fit_transform(X)
+        temp_all_data = np.c_[X,y]   
+ 
         datasets = []
         start, stop = 0, divided_n
         # divide the entire dataset to n nodes
@@ -554,9 +574,8 @@ def split_create_data(fake:bool, all_data, node:int, new_node:int, sample:int = 
                 stop+=1
                 remain_d -= 1
             # shuffle for sgd
-            seed(99)
-            shuffle(all_data[ start : stop, : ])
-            datasets.append( all_data[ start : stop, : ] )
+            shuffle(temp_all_data[ start : stop, : ])
+            datasets.append( temp_all_data[ start : stop, : ] )
             start, stop = stop, stop+divided_n
             
         return datasets, max_divided_n
@@ -575,4 +594,3 @@ def converge2(df_error, lr, probp, probq, all_node):
     plt.xlabel("step")
     plt.ylabel("error")
     plt.show()
-   

@@ -43,7 +43,9 @@ def contour(m, path, lr):
     plt.show()
     
 def converge(error, step, lr):
-    step = 300
+    if step > 300:
+        step = 300
+    
     plt.figure()
     plt.xlim(0, step)
     plt.plot(error, color = 'b')
@@ -72,9 +74,11 @@ col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
 
-n = 3
-# X = df1.values[:, 1::3] #angle and thickness
-X = df1.values[:, 0:n] 
+n = 5
+if n ==2:
+    X = df1.values[:, 1::3] #angle and thickness
+if n >2:
+    X = df1.values[:, 0:n] 
 y = df1.values[:, 5]
 
 std_scaler = StandardScaler()
@@ -109,19 +113,21 @@ all_data = np.c_[X,y]
 old_theta = []
 errors = []
 
+#threshold for convergence
+conv = 10
+
 for lr in learning_rate:
-    seed(99)
+    # seed(99)
     theta = randn(1, X.shape[1]+1)
     old_th = []
     old_th.append(theta[:,1:].reshape(theta.size-1,))
     error = []
     
-    shuffle(all_data)
-    train_x = all_data[:, :-1]
-    train_y = all_data[:, -1]  
-     
-  
     for i in range(epoch):
+        shuffle(all_data)
+        train_x = all_data[:, :-1]
+        train_y = all_data[:, -1] 
+        
         for start in range(0, nrows):
             y_hat = gradient(theta.size-1, theta, train_x[start], train_y[start])
             
@@ -140,7 +146,14 @@ for lr in learning_rate:
             if i ==0:
                 loss = 0.5 * ((y_hat)**2 )
                 error.append(abs(loss))
-                
+            
+            # threshold epsilon to stop before 
+            if abs(loss) < conv:
+                print("epoch= ",i," row= ", start)
+                break
+        if abs(loss) < conv:
+            break
+        
     print("learning rate=", lr, theta.flatten().round(decimals=3))    
     temp_table = ["sgd", lr, 0, epoch]
     for z in theta.flatten():
@@ -165,69 +178,71 @@ for lr in range(len(learning_rate)):
 
 ##########################################################
 ####### stochastic gradient descent (mini-batch)
-epoch =40
-old_theta = []
-errors = []
+mini_batch = False
 
-for lr in learning_rate:
-    seed(99)
-    theta = randn(1, X.shape[1]+1)
-    sum_grad = np.zeros(theta.shape)
-    
-    old_th = []
-    old_th.append(theta[:,1:].reshape(theta.size-1,))
-    error = []
-    
-    shuffle(all_data)
-    train_x = all_data[:, :-1]
-    train_y = all_data[:, -1]
-    
-    for i in range(epoch):
-        for start in range(0, nrows):
-            #stop = start + batch_size
-            y_hat = gradient(theta.size-1, theta, train_x[start], train_y[start])
-                 
-            for j in range(theta.size):
-                if j ==0:
-                    temps = y_hat
-                else:
-                    temp = y_hat * train_x[start,j-1] 
-                    temps = np.c_[temps,temp]              
-            sum_grad += temps
-            
-            if (start+1) % batch_size == 0 or start == nrows -1: 
-                if start == nrows-1:
-                    
-                    sum_grad /= (nrows%batch_size)
-                else:
-                    sum_grad /= batch_size
-                theta = theta - (lr * sum_grad)
-                sum_grad = np.zeros(theta.shape)
+if mini_batch == True:
+    epoch =40
+    old_theta = []
+    errors = []
+
+    for lr in learning_rate:
+        seed(99)
+        theta = randn(1, X.shape[1]+1)
+        sum_grad = np.zeros(theta.shape)
+        
+        old_th = []
+        old_th.append(theta[:,1:].reshape(theta.size-1,))
+        error = []
+        
+        for i in range(epoch):
+            shuffle(all_data)
+            train_x = all_data[:, :-1]
+            train_y = all_data[:, -1]
+            for start in range(0, nrows):
+                #stop = start + batch_size
+                y_hat = gradient(theta.size-1, theta, train_x[start], train_y[start])
+                     
+                for j in range(theta.size):
+                    if j ==0:
+                        temps = y_hat
+                    else:
+                        temp = y_hat * train_x[start,j-1] 
+                        temps = np.c_[temps,temp]              
+                sum_grad += temps
                 
-                old_th.append(theta[:,1:].reshape(theta.size-1,)) 
-                loss = 0.5 * ((y_hat)**2 )
-                error.append(abs(loss))
-               
-    print("learning rate=", lr, theta.flatten().round(decimals=3))    
-    temp_table = ["sgd with mini-batch", lr, batch_size, epoch]
-    for z in theta.flatten():
-        temp_table.append(z.round(decimals=3))
-    table.append(temp_table)   
+                if (start+1) % batch_size == 0 or start == nrows -1: 
+                    if start == nrows-1:
+                        
+                        sum_grad /= (nrows%batch_size)
+                    else:
+                        sum_grad /= batch_size
+                    theta = theta - (lr * sum_grad)
+                    sum_grad = np.zeros(theta.shape)
+                    
+                    old_th.append(theta[:,1:].reshape(theta.size-1,)) 
+                    loss = 0.5 * ((y_hat)**2 )
+                    error.append(abs(loss))
+                          
+        print("learning rate=", lr, theta.flatten().round(decimals=3))    
+        temp_table = ["sgd with mini-batch", lr, batch_size, epoch]
+        for z in theta.flatten():
+            temp_table.append(z.round(decimals=3))
+        table.append(temp_table)   
+        
+        old_theta.append(old_th)    
+        errors.append(error)
     
-    old_theta.append(old_th)    
-    errors.append(error)
-
-# visualisation
-## gradient
-for lr in range(len(learning_rate)):
-    all_w = np.array(old_theta[lr])
-    if all_w.shape[1] > 2:
-        break
-    contour(model.coef_, all_w, learning_rate[lr])    
-## error
-for lr in range(len(learning_rate)):
-    all_e = np.array(errors[lr])
-    converge(all_e, len(errors[lr]), learning_rate[lr])
+    # visualisation
+    ## gradient
+    for lr in range(len(learning_rate)):
+        all_w = np.array(old_theta[lr])
+        if all_w.shape[1] > 2:
+            break
+        contour(model.coef_, all_w, learning_rate[lr])    
+    ## error
+    for lr in range(len(learning_rate)):
+        all_e = np.array(errors[lr])
+        converge(all_e, len(errors[lr]), learning_rate[lr])
 
 # data2 = path + "\csv\\reg_normal_sgd.csv"
 # df999 = pd.DataFrame(table, columns=col_table)

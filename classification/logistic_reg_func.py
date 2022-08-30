@@ -1,7 +1,9 @@
 from math import floor, ceil
 
 import numpy as np
-from numpy.random import randn, randint, seed, normal, uniform, shuffle 
+from numpy.random import random_sample, randint, seed, uniform, shuffle 
+import scipy.stats as stats
+from sklearn.preprocessing import StandardScaler
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,7 +12,7 @@ import matplotlib.pyplot as plt
 ## compute function
 def init_theta(seed_num: int, nrow: int) -> np.array:
     # seed(seed_num)
-    theta = randn(1, nrow).flatten()
+    theta = random_sample(nrow,)
     return theta[0], theta[1:]
 
 def init_all_theta(n_node, ncol, theta_is_zero, seed_num=49):
@@ -25,18 +27,6 @@ def init_all_theta(n_node, ncol, theta_is_zero, seed_num=49):
             theta.append(tt)
     return theta0, theta
 
-def init_all_minmax_theta(n_node, nrow, theta_is_zero, seed_num=49):
-    theta0, theta = [], []
-    for _ in range(n_node):
-        if theta_is_zero == True:    
-            theta0.append(0)   
-            theta.append(np.zeros(nrow))
-        else:
-            tt0, tt = init_theta(seed_num, nrow+1)
-            theta0.append(tt0)
-            theta.append(tt)
-    return theta[0], theta[1:]
-
 def sigmoid(w, X, b):
     X_T = X.reshape(X.size,1)
     xx = np.dot(w.reshape(1, w.size), X_T).flatten() + b
@@ -49,48 +39,76 @@ def compute_grad(y_h,y ,X_T):
 
 def cost(a,y):
     return - ( (y * np.log2(a)) + ((1-y) * np.log2(1-a)) )
-
+#create min max list and update the list
 def min_max_theta(theta0, theta, mn_mx):
     temp = []
-    if mn_mx == []:  
-        for t1 in range(len(theta)):
-            tp = []
+    if mn_mx == []: 
+        # initial min max with [0, thetas of node0]
+        for t2 in range(theta[0].size+1):
+            if t2 == 0: 
+                x = random_sample(1)[0]
+                if x <= theta0[0] :
+                    mn,mx = x , theta0[0] 
+                else:
+                    mn,mx = theta0[0] , x
+            else:
+                mn,mx = 0, theta[0][t2-1]
+            temp.append([mn,mx])
+            
+        # replace  min max of node 0 with others
+        for t1 in range(1, len(theta)):
             #theta0 + other thetas
             for t2 in range(theta[0].size+1):
-                if t2 == 0:
-                    if theta0[t1] >0:
-                        
-                        mn,mx = theta0[t1] , theta0[t1]  
-                    else:
-                        mn,mx = theta0[t1], theta0[t1]
-                else:
-                    if theta[t1][t2-1] >0:
-                        mn,mx = theta[t1][t2-1], theta[t1][t2-1]
-                    else:
-                        mn,mx = theta[t1][t2-1], theta[t1][t2-1]
-                
-                tp.append([mn,mx])
-            temp.append(tp)
+                if t2 == 0: 
+                    #max
+                    if theta0[t1] > temp[t2][1]:
+                        temp[t2][1] = theta0[t1]
+                    #min
+                    elif theta0[t1] < temp[t2][0]:
+                        temp[t2][0] = theta0[t1]
+                else: 
+                    # max
+                    if theta[t1][t2-1] > temp[t2][1]:
+                        temp[t2][1] = theta[t1][t2-1]
+                    # min
+                    elif theta[t1][t2-1] < temp[t2][0]:
+                        temp[t2][0] = theta[t1][t2-1]
         return temp
     else:
-        for t1 in range(len(mn_mx)):
-            for t2 in range(len(mn_mx[0])):
+        # to every node
+        for t1 in range(len(theta)):
+            #theta0 + other thetas
+            for t2 in range(theta[0].size+1):
                 if t2 ==0:
                     # min
-                    if mn_mx[t1][t2][0] > theta0[t1]:
-                        mn_mx[t1][t2][0] = theta0[t1]
+                    if mn_mx[t2][0] > theta0[t1]:
+                        mn_mx[t2][0] = theta0[t1]
                     # max
-                    elif mn_mx[t1][t2][1] < theta0[t1]:
-                        mn_mx[t1][t2][1] = theta0[t1]
+                    elif mn_mx[t2][1] < theta0[t1]:
+                        mn_mx[t2][1] = theta0[t1]
                 else:
                     # min
-                    if mn_mx[t1][t2][0] > theta[t1][t2-1]:
-                        mn_mx[t1][t2][0] = theta[t1][t2-1]
+                    if mn_mx[t2][0] > theta[t1][t2-1]:
+                        mn_mx[t2][0] = theta[t1][t2-1]
                     # max
-                    elif mn_mx[t1][t2][1] < theta[t1][t2-1]:
-                        mn_mx[t1][t2][1] = theta[t1][t2-1]
+                    elif mn_mx[t2][1] < theta[t1][t2-1]:
+                        mn_mx[t2][1] = theta[t1][t2-1]
         return mn_mx
+# choose min or max from actual theta
+def which_theta(min_value, max_value, actual_value, interval):
+    temp = np.linspace(start= min_value, stop= max_value, num=interval+1)
+    if actual_value < min_value or actual_value > max_value:
+        pass
+    x = uniform(0,1)  
+    for t in range(interval):
+        if actual_value >= temp[t] and actual_value <= temp[t+1]:
+            min_prob = (temp[t+1] - actual_value ) / (temp[t+1]- temp[t])
+            if x < min_prob:
 
+                return temp[t]
+            else:
+                return temp[t+1]
+            
 ##############################################################################
 ## compute gradients for each node with one theta from master
 def compute_each_grad_one_theta(node:int, order:int, theta0:list, theta:list, dataset:list):
@@ -145,7 +163,7 @@ def compute_each_grad_one_theta(node:int, order:int, theta0:list, theta:list, da
 ## compute gradients for each node
 def compute_each_grad(node:int, order:int, theta0:list, theta:list, dataset:list):
     if node ==0:
-        try:          
+        try:        
             x = dataset[node][order][0:-1]
             y = dataset[node][order][-1]
             t0 = theta0[node]

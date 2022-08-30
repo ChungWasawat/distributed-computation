@@ -60,9 +60,12 @@ else:
 # 1st boolean for create fake data
 # all data = entire training data
 # node = a number of nodes
-# integer 1 means if 1st boolean is true, it will replace one node's data with fake data
-# next integer(default =1) is sample number to create fake data 
-datasets, max_d = split_create_data(False, all_data, node, 1)
+mu = np.mean(all_data, axis=0)
+sigma = np.std(all_data, axis=0)
+lim=[0.05,0.15]                              #interval on normal dist of fake data
+fake = True
+new_fake_node = 10
+datasets, max_d = split_create_data(fake, all_data, node, new_fake_node, mu, sigma, lim)
 
 ########################### compute gradients #################################
 # default 
@@ -88,9 +91,8 @@ qs = [1] # no prob fail
 case = 1
 if case==1:
     ## centralised sgd
-    ## only use with qs = [1]
+    ## only use with qs = [1] because all nodes need to finish their task before going to the next time step
     for probq in qs:
-
         for lr in learning_rate: 
             error = []
             #initial theta
@@ -110,17 +112,20 @@ if case==1:
                     #find average theta and update it
                     sum_grad0 = 0
                     sum_grad = np.zeros(X.shape[1])
+                    nee = 0
                     for i in range(ne):
                         x = uniform(0,1) 
                         if x<=probq:
                             sum_grad0 += all_grad0[i]
                             sum_grad += all_grad[i]
                             succ_comm[i] +=1
-                    avg_grad0 = sum_grad0 / ne
-                    avg_grad = sum_grad / ne
-                    
-                    theta0 = theta0 - (lr * avg_grad0)
-                    theta = theta - (lr * avg_grad)
+                            nee+=1
+                    if nee >0:
+                        avg_grad0 = sum_grad0 / nee
+                        avg_grad = sum_grad / nee
+                        
+                        theta0[0] = theta0[0] - (lr * avg_grad0)
+                        theta[0] = theta[0] - (lr * avg_grad)
                     
                     #store error
                     if t%every_t==0:
@@ -133,7 +138,7 @@ if case==1:
                             
             errors.append(error)
             print(f"avg successful communication for decen sgd with n={node}",np.mean(succ_comm))
- 
+            print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )
             ## visualisation   
             str_probp = str(1)
             if probq !=1:
@@ -187,8 +192,7 @@ elif case==2:
                 for d in range(max_d):
                     #compute gradient
                     all_grad0, all_grad, all_cost, all_c, ne = compute_each_grad(node-1, d, theta0, theta, datasets) 
-                    all_loss = all_c/ne
-                    
+                    all_loss = all_c/ne           
                     # skip this iteration because data of all nodes is not equal
                     if ne < node:
                         continue
@@ -203,7 +207,7 @@ elif case==2:
                             
             errors.append(error)
             print(f"avg successful communication for decen sgd with n={node}, q={probq}",np.mean(succ_comm))
-                              
+            print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )                                   
             ## visualisation   
             str_probp = str(probp)[0]+str(probp)[2]
             if probq !=1:
@@ -239,4 +243,3 @@ elif case==2:
             else:
                 converge2(df777, learning_rate[0], probp, probq, err_everynode)        
         
-
