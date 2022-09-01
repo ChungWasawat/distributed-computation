@@ -6,8 +6,8 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-from linear_reg_func import create_draw_network, split_create_data, init_all_theta, min_max_theta
-from linear_reg_func import update_each_theta, update_each_theta_quan, compute_each_grad, converge2
+from logistic_reg_func import create_draw_network, split_create_data, init_all_theta, min_max_theta
+from logistic_reg_func import update_each_theta, update_each_theta_quan, compute_each_grad, converge2
 
 # edit update quan
 ########################### create network ####################################
@@ -17,19 +17,19 @@ matrix, matrix_dict = create_draw_network(node, probp)
 
 ########################### import data #######################################
 # choose a number of variables (only n>=2, n<6), and split data?
-col = 5
+col = 4
 train_test_separate = False
 
 path = os.getcwd()
 std_scaler = StandardScaler()
 
-data1 = path + "\data\\airfoil_self_noise.dat"
-col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound'] # columns of the dataset
-df1 = pd.read_table(data1, sep="\t", names=col1)
+data1 = path + "\data\\data_banknote_authentication.txt"
+col1 = ['variance', 'skewness', 'curtosis', 'entropy', 'class'] # columns of the dataset
+df1 = pd.read_table(data1, sep=",", names=col1)
 
 if train_test_separate == True:
     train, test = train_test_split(df1, test_size=0.2)
-    # choose specific columns # angle+thickness are high correlation
+    # choose specific columns
     if col ==2:
         X_train = train.values[:, 1::3]
         X_test = test.values[:, 1::3]
@@ -40,10 +40,10 @@ if train_test_separate == True:
     y_train = train.values[:, -1]
     y_test = test.values[:, -1]
     
-    # X_train = std_scaler.fit_transform(X_train)
+    X_train = std_scaler.fit_transform(X_train)
     all_data = np.c_[X_train,y_train]
 
-    # X_test = std_scaler.fit_transform(X_test)
+    X_test = std_scaler.fit_transform(X_test)
     all_data_test = np.c_[X_test,y_test]
 else:
     # choose specific columns
@@ -54,9 +54,9 @@ else:
         
     y = df1.values[:, -1] 
 
-    # X = std_scaler.fit_transform(X)
+    X = std_scaler.fit_transform(X)
     all_data = np.c_[X,y]
-
+    
 ########################### split data to each node ###########################
 # 1st boolean for create fake data
 # all data = entire training data
@@ -82,17 +82,18 @@ err_everynode = False
 seed_num = 42
 epoch = 30
 every_t = 1
-learning_rate = [ 0.01]
+learning_rate = [ 0.05]
 mn_mx = []
-conv = 5
+conv = 0.001
 
 qs = [0.1, 1]
+    
 ## decentralised sgd
 for probq in qs:
 
     if len(learning_rate) > 1:
         errors = [] 
-
+        
     for lr in learning_rate: 
         error = []
         #initial theta
@@ -101,46 +102,49 @@ for probq in qs:
         cont = 0
         mn_mx = min_max_theta(theta0, theta, [])
         for t in range(epoch):
-            all_loss = 0
+            total = 0
             for d in range(max_d):
                 #compute gradient
                 all_grad0, all_grad, all_cost, all_c, ne = compute_each_grad(node-1, d, theta0, theta, datasets) 
-                all_loss = all_c/ne
+                all_loss = all_c/ne           
                 # skip this iteration because data of all nodes is not equal
                 if ne < node:
                     cont = 1
                     continue
-
+                
+                total += all_loss
+                total /= d+1 
+           
                 #update theta
                 theta0, theta, succ_comm = update_each_theta(lr,matrix_dict, node-1, theta0, theta, all_grad0, all_grad, probq, succ_comm)
-
-                #threshold for stop
-                if all_loss < conv:
+                
+                if total < conv:
                     print("before max ", "epoch= ",t," row= ",d)
-                    break  
-
+                    break 
+                
                 #update min max
                 mn_mx = min_max_theta(theta0, theta, mn_mx)
-                
+    
                 if t%every_t==0:
                     if err_everynode == True:
                         error.append(all_cost)
                     else:
                         error.append(all_loss)
-                        
-            if all_loss < conv and cont ==0:
-                break
+            #threshold for stop
+            if total < conv and cont ==0:           
+                break         
             
             for ds in datasets:
                 shuffle(ds)
+             
             cont = 0
-            
         if t == epoch-1:
-            print("at max ", "epoch= ",t," row= ",d)           
+            print("at max ", "epoch= ",t," row= ",d)            
+            
         errors.append(error)
         print(f"avg successful communication for decen sgd with n={node}, q={probq}",np.mean(succ_comm))
-        print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )                  
-
+        print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )                                   
+            
     # default 
     col_table2 = []
     errors = [] 
@@ -151,7 +155,7 @@ for probq in qs:
     div = 10
     epoch = 30
     # max_d = 3
-
+    
     # shuffle data to do stochastic gradient descent
     for d in datasets:
         shuffle(d)
@@ -159,7 +163,7 @@ for probq in qs:
     # quantization
     if len(learning_rate) > 1:
         errors = [] 
-
+    
     for lr in learning_rate: 
         error = []
         #initial theta
@@ -167,7 +171,7 @@ for probq in qs:
         succ_comm = [0]*(node)
         cont =0
         for t in range(epoch):
-            all_loss = 0
+            total = 0
             for d in range(max_d):
                 #compute gradient
                 all_grad0, all_grad, all_cost, all_c, ne = compute_each_grad(node-1, d, theta0, theta, datasets) 
@@ -176,11 +180,14 @@ for probq in qs:
                 if ne < node:
                     cont =1
                     continue
-
+                
+                total += all_loss
+                total /= d+1 
+                
                 theta0, theta, succ_comm = update_each_theta_quan(lr,matrix_dict, node-1, theta0, theta, all_grad0, all_grad,probq, mn_mx, div, succ_comm)
                 
                 #threshold for stop
-                if all_loss < conv:
+                if total < conv:
                     print("before max ", "epoch= ",t," row= ",d)
                     break
                 
@@ -190,7 +197,7 @@ for probq in qs:
                     else:
                         error.append(all_loss)
             #threshold for stop
-            if all_loss < conv and cont ==0:
+            if total < conv and cont ==0:
                 break
             
             for ds in datasets:
@@ -227,7 +234,7 @@ for probq in qs:
                 temp_df777 = pd.DataFrame(error, columns=col_table2)
                 df777 = pd.concat([df777,temp_df777 ], axis=1)
                 col_table2 = [] 
-  
+    
     ## plot
     if visual == True:
         if len(learning_rate) == 1:
@@ -235,5 +242,7 @@ for probq in qs:
                 for i in range(0, df777.shape[1], node):
                     converge2(df777.iloc[:,i:i+node], learning_rate[0], probp, probq, err_everynode)
             else:
-                converge2(df777, learning_rate[0], probp, probq, err_everynode)  
-            
+                converge2(df777, learning_rate[0], probp, probq, err_everynode)      
+
+    
+    

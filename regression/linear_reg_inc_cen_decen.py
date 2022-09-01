@@ -11,12 +11,12 @@ from linear_reg_func import init_all_theta, compute_each_grad_one_theta, compute
 
 ########################### create network ####################################
 ## for decentralised sgd
-node = 30
-probp = 0.1                         # probability for a number of links that connect nodes
+node = 15
+probp = 0.9                        # probability for a number of links that connect nodes
 matrix, matrix_dict = create_draw_network(node, probp)
 
 ########################### import data #######################################
-col = 10                             # choose a number of variables (only n>=2, n<6)
+col = 5                             # choose a number of variables (only n>=2, n<6)
 train_test_separate = False         # separate train/test for early stopping?
 
 path = os.getcwd()
@@ -50,7 +50,6 @@ else:
         X = df1.values[:, 0:col] 
         
     y = df1.values[:, -1] 
-
     all_data = np.c_[X,y]
 
 ########################### split data to each node ###########################
@@ -76,19 +75,18 @@ theta_is_zero = False       # initial theta with zero or random value
 visual = True               # show graph
 make_csv = False            # create csv for this data (not availble)
 err_everynode = False       # separate error of each node
-seed_num = 99               # seed for random everything on the model
+seed_num = 42               # seed for random everything on the model
 epoch = 30                  # iteration for training model
 every_t = 1                 # store error at data that % t ==0 
 learning_rate = [ 0.01]     # only one for now
-conv = 5                   #convergence threshold
-
+conv = 5                    #convergence threshold
 
 # probability for failure communication
 # qs = [1] # no prob fail 
-qs = [0.1,0.5,0.9]
+qs = [0.1,1]
 
 # 1 for centralised sgd, 2 for decentralised sgd
-case = 1
+case = 2
 if case==1:
     ## centralised sgd
     ## only use with qs = [1] because all nodes need to finish their task before going to the next time step
@@ -98,8 +96,8 @@ if case==1:
             #initial theta
             theta0, theta = init_all_theta(1, X.shape[1], theta_is_zero)            
             succ_comm = [0]*(node)
-            for t in range(epoch):
-                all_loss = 0            
+            cont = 0
+            for t in range(epoch):           
                 for d in range(max_d):
                     #compute gradient
                     all_grad0, all_grad, all_cost, all_c, ne = compute_each_grad_one_theta(node-1, d, theta0, theta, datasets) 
@@ -107,8 +105,9 @@ if case==1:
                     
                     # skip this iteration because data of all nodes is not equal
                     if ne < node:
+                        cont = 1
                         continue
-                    
+                                     
                     #find average theta and update it
                     sum_grad0 = 0
                     sum_grad = np.zeros(X.shape[1])
@@ -120,13 +119,18 @@ if case==1:
                             sum_grad += all_grad[i]
                             succ_comm[i] +=1
                             nee+=1
+                            
+                    #threshold for stop
+                    if all_loss < conv:
+                        print("before max ", "epoch= ",t," row= ",d)
+                        break 
+                    
                     if nee >0:
                         avg_grad0 = sum_grad0 / nee
                         avg_grad = sum_grad / nee
                         
                         theta0[0] = theta0[0] - (lr * avg_grad0)
-                        theta[0] = theta[0] - (lr * avg_grad)
-                    
+                        theta[0] = theta[0] - (lr * avg_grad)                    
                     #store error
                     if t%every_t==0:
                         # separate cost of each node
@@ -136,21 +140,20 @@ if case==1:
                         else:
                             error.append(all_loss)
                     
-                    #threshold for stop
-                    if all_loss < conv:
-                        print("before max ", "epoch= ",t," row= ",d)
-                        break
-                if all_loss < conv:
+                #threshold for stop
+                if all_loss < conv and cont ==0:
                     break
                 
                 for ds in datasets:
                     shuffle(ds)
-                    
+                 
+                cont = 0
             if t == epoch-1:
                 print("at max ", "epoch= ",t," row= ",d)    
             errors.append(error)
             print(f"avg successful communication for decen sgd with n={node}",np.mean(succ_comm))
             print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )
+            
             ## visualisation   
             str_probp = str(1)
             if probq !=1:
@@ -198,39 +201,46 @@ elif case==2:
             #initial theta
             theta0, theta = init_all_theta(node, X.shape[1], theta_is_zero)
             succ_comm = [0]*(node)
-            
+            cont = 0
             for t in range(epoch):
-                all_loss = 0
                 for d in range(max_d):
                     #compute gradient
                     all_grad0, all_grad, all_cost, all_c, ne = compute_each_grad(node-1, d, theta0, theta, datasets) 
                     all_loss = all_c/ne
                     # skip this iteration because data of all nodes is not equal
                     if ne < node:
+                        cont = 1
                         continue
+                    
                     #update theta
                     theta0, theta, succ_comm = update_each_theta(lr,matrix_dict, node-1, theta0, theta, all_grad0, all_grad, probq, succ_comm)
+                    
+                    #threshold for stop
+                    if all_loss < conv:
+                        print("before max ", "epoch= ",t," row= ",d)
+                        break 
                     
                     if t%every_t==0:
                         if err_everynode == True:
                             error.append(all_cost)
                         else:
                             error.append(all_loss)
-             
-                        
-                    #threshold for stop
-                    if all_loss < conv:
-                        print("before max ", "epoch= ",t," row= ",d)
-                        break
-                if all_loss < conv:
+                                    
+                #threshold for stop
+                if all_loss < conv and cont ==0:
                     break
                 
                 for ds in datasets:
                     shuffle(ds)
-            
+                cont = 0  
+                
+            if t == epoch-1:
+                print("at max ", "epoch= ",t," row= ",d)
+                
             errors.append(error)
             print(f"avg successful communication for decen sgd with n={node}, q={probq}",np.mean(succ_comm))
             print(f"n={node}, avg of theta ", round(np.mean(theta0),3), np.round(np.mean(theta, axis=0),3) )                  
+            
             ## visualisation   
             str_probp = str(probp)[0]+str(probp)[2]
             if probq !=1:

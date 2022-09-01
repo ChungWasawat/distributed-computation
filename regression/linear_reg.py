@@ -1,11 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
-from numpy.random import seed
-from numpy.random import randn
-from numpy.random import shuffle
-from sklearn.linear_model import LinearRegression
+from numpy.random import seed, randn, shuffle
+
 from sklearn.preprocessing import StandardScaler
+from linear_reg_func import lin_reg
 
 import matplotlib.pyplot as plt
 
@@ -73,7 +72,6 @@ data1 = path + "\data\\airfoil_self_noise.dat"
 col1 = ['freq', 'angle', 'chord', 'velocity', 'thickness', 'sound']
 df1 = pd.read_table(data1, sep="\t", names=col1)
 
-
 n = 5
 if n ==2:
     X = df1.values[:, 1::3] #angle and thickness
@@ -81,16 +79,10 @@ if n >2:
     X = df1.values[:, 0:n] 
 y = df1.values[:, 5]
 
-std_scaler = StandardScaler()
-
-X = std_scaler.fit_transform(X)
-
 ##########################################################
 ###### linear regression 
 
-model = LinearRegression()
-model.fit(X, y)
-
+model = lin_reg(X,y)
 print("from linear regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
 
 col_table = ["model", "learning rate", "batch", "epoch", "intercept"]
@@ -104,20 +96,23 @@ for z in range(model.coef_.size):
 
 learning_rate = [0.01]
 # learning_rate = [0.005, 0.01, 0.05, 0.1]
-epoch =1
+epoch =30
 batch_size = 128
 nrows = X.shape[0]
 
-all_data = np.c_[X,y]
+#threshold for convergence
+conv = 5
+
+## standardisation
+std_scaler = StandardScaler()
+X = std_scaler.fit_transform(X)
+all_data = np.c_[X,y].copy()
 
 old_theta = []
 errors = []
 
-#threshold for convergence
-conv = 10
-
 for lr in learning_rate:
-    # seed(99)
+    seed(42)
     theta = randn(1, X.shape[1]+1)
     old_th = []
     old_th.append(theta[:,1:].reshape(theta.size-1,))
@@ -130,6 +125,11 @@ for lr in learning_rate:
         
         for start in range(0, nrows):
             y_hat = gradient(theta.size-1, theta, train_x[start], train_y[start])
+            
+            # threshold epsilon to stop before 
+            if abs(loss) < conv:
+                print("epoch= ",i," row= ", start)
+                break
             
             for j in range(theta.size):
                 if j ==0:
@@ -147,10 +147,6 @@ for lr in learning_rate:
                 loss = 0.5 * ((y_hat)**2 )
                 error.append(abs(loss))
             
-            # threshold epsilon to stop before 
-            if abs(loss) < conv:
-                print("epoch= ",i," row= ", start)
-                break
         if abs(loss) < conv:
             break
         
@@ -184,9 +180,10 @@ if mini_batch == True:
     epoch =40
     old_theta = []
     errors = []
-
+    all_data = np.c_[X,y].copy()
+    
     for lr in learning_rate:
-        seed(99)
+        seed(42)
         theta = randn(1, X.shape[1]+1)
         sum_grad = np.zeros(theta.shape)
         
@@ -222,7 +219,13 @@ if mini_batch == True:
                     old_th.append(theta[:,1:].reshape(theta.size-1,)) 
                     loss = 0.5 * ((y_hat)**2 )
                     error.append(abs(loss))
-                          
+            
+                # threshold epsilon to stop before 
+                if abs(loss) < conv:
+                    print("epoch= ",i," row= ", start)
+                    break
+            if abs(loss) < conv:
+                break
         print("learning rate=", lr, theta.flatten().round(decimals=3))    
         temp_table = ["sgd with mini-batch", lr, batch_size, epoch]
         for z in theta.flatten():

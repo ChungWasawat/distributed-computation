@@ -5,8 +5,9 @@ import pandas as pd
 from numpy.random import seed
 from numpy.random import randn
 from numpy.random import shuffle
-from sklearn.linear_model import LogisticRegression
+
 from sklearn.preprocessing import StandardScaler
+from logistic_reg_func import log_reg
 
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,7 @@ def compute_grad(a,y,X_T):
     return grad.flatten()
 
 def cost(a,y):
-    return (-y * np.log10(a)) - ((1-y) * np.log10(1-a))
+    return -( (y * np.log10(a)) + ((1-y) * np.log10(1-a)) )
 
 def contour(m, path, lr):
     plt.figure()
@@ -80,13 +81,9 @@ df1 = pd.read_table(data1, sep=",", names=col1)
 X = df1.values[:, 0:4] 
 Y = df1.values[:, 4]
 
-std_scaler = StandardScaler()
-X = std_scaler.fit_transform(X)
-
 ##########################################################
 # logistic regression
-model = LogisticRegression()
-model.fit(X, Y)
+model = log_reg(X, Y)
 
 print("from logistic regression", model.intercept_.round(decimals=3), model.coef_.round(decimals=3))
 
@@ -99,25 +96,28 @@ for m in range(model.coef_.size):
 ##########################################################
 ## sgd
 theta_is_zero = True
-seed_num = 99
+seed_num = 42
 
 learning_rate = [0.005, 0.01, 0.05, 0.1]
-# learning_rate = [0.01, 0.05, 0.1, 0.5]
 
 epoch = 30
 every_t = 1
 batch_size = 64
 
+# threshold to stop training
+conv = 0.001
+
+std_scaler = StandardScaler()
+X = std_scaler.fit_transform(X)
 all_data = np.c_[X,Y]
 nrows= all_data.shape[0]
 
-old_theta = []
-errors = []
-
-seed(seed_num)
 shuffle(all_data)
 train_x = all_data[:, :-1]
 train_y = all_data[:, -1]  
+
+old_theta = []
+errors = []
 
 for lr in learning_rate:   
     if theta_is_zero == True:
@@ -135,18 +135,31 @@ for lr in learning_rate:
             x = train_x[m]
             y = train_y[m]
             a = sigmoid(theta, x, theta0)
-            g = compute_grad(a, y, x)
-
+            g = compute_grad(a, y, x)      
+            
             theta0 = theta0 - (lr * (a-y))
             theta = theta - (lr * g)
             
             c += cost(a,y)
-            
+
             if m%batch_size==0 :
-                old_th.append(theta)   
-        if t%every_t==0:
-            error.append(c/(nrows-1))
+                old_th.append(theta)  
+
+            cc = c / (m+1)
+            #threshold for stop
+            if cc < conv:
+                print("before max ", "epoch= ",t," row= ",m)
+                error.append(cc)
+                break 
             
+        #threshold for stop
+        if cc < conv:           
+            break 
+        error.append(cc)
+        
+        shuffle(all_data)
+        train_x = all_data[:, :-1]
+        train_y = all_data[:, -1]      
     print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
     temp_table = ["sgd", lr, 0, epoch, theta0[0]]
     for z in theta:
@@ -170,73 +183,76 @@ for lr in range(len(learning_rate)):
     
 ##########################################################
 ## sgd with mini batch
-old_theta = []
-errors = []
+mini = False
 
-for lr in learning_rate:   
-    if theta_is_zero == True:
-        theta0,theta = 0, np.zeros(X.shape[1])
-    else:
-        theta0, theta = theta_init(seed_num)
+if mini == True:
+    old_theta = []
+    errors = []
     
-    sum_theta0 = np.zeros(1)
-    sum_theta = np.zeros(theta.shape)
+    for lr in learning_rate:   
+        if theta_is_zero == True:
+            theta0,theta = 0, np.zeros(X.shape[1])
+        else:
+            theta0, theta = theta_init(seed_num)
+        
+        sum_theta0 = np.zeros(1)
+        sum_theta = np.zeros(theta.shape)
+        
+        old_th = []
+        old_th.append(theta)
+        error = []    
     
-    old_th = []
-    old_th.append(theta)
-    error = []    
-
-    for t in range(epoch):
-        for m in range(nrows):
-            x = train_x[m]
-            y = train_y[m]
-            a = sigmoid(theta, x, theta0)
-            g = compute_grad(a, y, x)
-            
-            sum_theta0 += (a-y)
-            sum_theta += g
-            
-            #update depends on batch size
-            if m%batch_size==0 or m==nrows-1:
-                if m == nrows-1:
-                    sum_theta0 /= (nrows%batch_size)
-                    sum_theta /= (nrows%batch_size)
-                else:
-                    sum_theta0 /= batch_size  
-                    sum_theta /= batch_size               
-            
-                theta0 = theta0 - (lr * sum_theta0)
-                theta = theta - (lr * sum_theta)
-            
-                sum_theta0 = np.zeros(1)
-                sum_theta = np.zeros(theta.shape)
+        for t in range(epoch):
+            for m in range(nrows):
+                x = train_x[m]
+                y = train_y[m]
+                a = sigmoid(theta, x, theta0)
+                g = compute_grad(a, y, x)
                 
-        if t % every_t ==0:
-            old_th.append(theta)              
-            c = cost(a,y)
-            error.append(c)
-            
-    print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
-    temp_table = ["sgd with mini-batch", lr, batch_size, epoch, theta0[0]]
-    for z in theta:
-        temp_table.append(z.round(decimals=3))
-    table.append(temp_table)   
-    
-    old_theta.append(old_th)    
-    errors.append(error)
-   
-# visualisation
-## gradient
-for lr in range(len(learning_rate)):
-    all_w = np.array(old_theta[lr])
-    if all_w.shape[1] > 2:
-        break
-    contour(model.coef_.flatten(), all_w, learning_rate[lr])  
-## error
-for lr in range(len(learning_rate)):
-    all_e = np.array(errors[lr])
-    converge(all_e, len(errors[lr]), learning_rate[lr])
-    
+                sum_theta0 += (a-y)
+                sum_theta += g
+                
+                #update depends on batch size
+                if m%batch_size==0 or m==nrows-1:
+                    if m == nrows-1:
+                        sum_theta0 /= (nrows%batch_size)
+                        sum_theta /= (nrows%batch_size)
+                    else:
+                        sum_theta0 /= batch_size  
+                        sum_theta /= batch_size               
+                
+                    theta0 = theta0 - (lr * sum_theta0)
+                    theta = theta - (lr * sum_theta)
+                
+                    sum_theta0 = np.zeros(1)
+                    sum_theta = np.zeros(theta.shape)
+                    
+            if t % every_t ==0:
+                old_th.append(theta)              
+                c = cost(a,y)
+                error.append(c)
+                
+        print("learning rate=", lr, theta0.round(decimals=3), theta.round(decimals=3))
+        temp_table = ["sgd with mini-batch", lr, batch_size, epoch, theta0[0]]
+        for z in theta:
+            temp_table.append(z.round(decimals=3))
+        table.append(temp_table)   
+        
+        old_theta.append(old_th)    
+        errors.append(error)
+       
+    # visualisation
+    ## gradient
+    for lr in range(len(learning_rate)):
+        all_w = np.array(old_theta[lr])
+        if all_w.shape[1] > 2:
+            break
+        contour(model.coef_.flatten(), all_w, learning_rate[lr])  
+    ## error
+    for lr in range(len(learning_rate)):
+        all_e = np.array(errors[lr])
+        converge(all_e, len(errors[lr]), learning_rate[lr])
+        
 ##########################################################
 ## csv
 # data2 = path + "\csv\\cla_normal_sgd.csv"
